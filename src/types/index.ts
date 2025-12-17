@@ -52,6 +52,7 @@ export interface AvaliacaoMensal {
   
   // Faixa 3 - Resultado com Cliente e Time
   faixa3_nps_projeto: number;
+  faixa3_sla: number;
   faixa3_backlog: number;
   faixa3_prioridades: number;
   
