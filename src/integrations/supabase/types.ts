@@ -14,16 +14,218 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      avaliacoes_mensais: {
+        Row: {
+          atualizado_em: string
+          avaliador_id: string
+          criado_em: string
+          faixa1_ausencias: number
+          faixa1_pendencias: number
+          faixa2_chave_atitudes: number
+          faixa2_chave_comportamento: number
+          faixa2_chave_habilidades: number
+          faixa2_chave_valores: number
+          faixa2_produtividade: number
+          faixa2_qualidade: number
+          faixa3_backlog: number
+          faixa3_nps_projeto: number
+          faixa3_prioridades: number
+          faixa3_sla: number
+          faixa4_churn: number
+          faixa4_nps_global: number
+          faixa4_uso_ava: number
+          id: string
+          mes: string
+          prestador_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          avaliador_id: string
+          criado_em?: string
+          faixa1_ausencias?: number
+          faixa1_pendencias?: number
+          faixa2_chave_atitudes?: number
+          faixa2_chave_comportamento?: number
+          faixa2_chave_habilidades?: number
+          faixa2_chave_valores?: number
+          faixa2_produtividade?: number
+          faixa2_qualidade?: number
+          faixa3_backlog?: number
+          faixa3_nps_projeto?: number
+          faixa3_prioridades?: number
+          faixa3_sla?: number
+          faixa4_churn?: number
+          faixa4_nps_global?: number
+          faixa4_uso_ava?: number
+          id?: string
+          mes: string
+          prestador_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          avaliador_id?: string
+          criado_em?: string
+          faixa1_ausencias?: number
+          faixa1_pendencias?: number
+          faixa2_chave_atitudes?: number
+          faixa2_chave_comportamento?: number
+          faixa2_chave_habilidades?: number
+          faixa2_chave_valores?: number
+          faixa2_produtividade?: number
+          faixa2_qualidade?: number
+          faixa3_backlog?: number
+          faixa3_nps_projeto?: number
+          faixa3_prioridades?: number
+          faixa3_sla?: number
+          faixa4_churn?: number
+          faixa4_nps_global?: number
+          faixa4_uso_ava?: number
+          id?: string
+          mes?: string
+          prestador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_mensais_avaliador_id_fkey"
+            columns: ["avaliador_id"]
+            isOneToOne: false
+            referencedRelation: "prestadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_mensais_prestador_id_fkey"
+            columns: ["prestador_id"]
+            isOneToOne: false
+            referencedRelation: "prestadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prestadores: {
+        Row: {
+          atualizado_em: string
+          avaliador_id: string | null
+          criado_em: string
+          data_inicio_prestacao: string | null
+          email: string
+          id: string
+          nome: string
+          responsavel_ghas: boolean
+          salario_fixo: number
+          situacao: Database["public"]["Enums"]["situacao_type"]
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          avaliador_id?: string | null
+          criado_em?: string
+          data_inicio_prestacao?: string | null
+          email: string
+          id?: string
+          nome: string
+          responsavel_ghas?: boolean
+          salario_fixo?: number
+          situacao?: Database["public"]["Enums"]["situacao_type"]
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          avaliador_id?: string | null
+          criado_em?: string
+          data_inicio_prestacao?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          responsavel_ghas?: boolean
+          salario_fixo?: number
+          situacao?: Database["public"]["Enums"]["situacao_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prestadores_avaliador_id_fkey"
+            columns: ["avaliador_id"]
+            isOneToOne: false
+            referencedRelation: "prestadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registros_globais: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          faixa4_churn: number
+          faixa4_nps_global: number
+          faixa4_uso_ava: number
+          id: string
+          mes: string
+          registrado_por_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          faixa4_churn?: number
+          faixa4_nps_global?: number
+          faixa4_uso_ava?: number
+          id?: string
+          mes: string
+          registrado_por_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          faixa4_churn?: number
+          faixa4_nps_global?: number
+          faixa4_uso_ava?: number
+          id?: string
+          mes?: string
+          registrado_por_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_globais_registrado_por_id_fkey"
+            columns: ["registrado_por_id"]
+            isOneToOne: false
+            referencedRelation: "prestadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "avaliador" | "prestador"
+      situacao_type: "ativo" | "inativo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +352,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "avaliador", "prestador"],
+      situacao_type: ["ativo", "inativo"],
+    },
   },
 } as const
