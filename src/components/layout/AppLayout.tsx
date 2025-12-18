@@ -11,7 +11,7 @@ interface AppLayoutProps {
 }
 
 const navigation = [
-  { name: 'Administração', href: '/administracao', icon: Users },
+  { name: 'Administração', href: '/administracao', icon: Users, requiresAdmin: true },
   { name: 'Registro', href: '/registro', icon: ClipboardList },
   { name: 'Registro Global', href: '/registro-global', icon: Globe, requiresGhas: true },
   { name: 'Cálculo', href: '/calculo', icon: Calculator },
@@ -44,7 +44,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <nav className="p-4 space-y-1">
           {navigation
-            .filter((item) => !item.requiresGhas || isResponsavelGhas || isAdmin)
+            .filter((item) => {
+              if (item.requiresAdmin && !isAdmin) return false;
+              if (item.requiresGhas && !isResponsavelGhas && !isAdmin) return false;
+              return true;
+            })
             .map((item) => {
               const isActive = location.pathname === item.href;
               return (
