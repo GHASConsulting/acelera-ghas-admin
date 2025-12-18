@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Globe, AlertCircle, Info, Lock } from 'lucide-react';
+import { Plus, Globe, Info, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Tooltip,
@@ -26,22 +26,41 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { mockRegistrosGlobais, prestadorLogado } from '@/data/mockData';
-import { RegistroGlobal, MesAvaliacao, MESES_AVALIACAO } from '@/types';
+import { useRegistrosGlobais } from '@/hooks/useAvaliacoes';
+import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
+import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
+type RegistroGlobal = Tables<'registros_globais'>;
+
+const MESES_AVALIACAO = [
+  'Janeiro/2026',
+  'Fevereiro/2026',
+  'Março/2026',
+  'Abril/2026',
+  'Maio/2026',
+  'Junho/2026',
+  'Julho/2026',
+  'Agosto/2026',
+  'Setembro/2026',
+  'Outubro/2026',
+  'Novembro/2026',
+  'Dezembro/2026',
+];
+
 export default function RegistroGlobalPage() {
-  const [registros, setRegistros] = useState<RegistroGlobal[]>(mockRegistrosGlobais);
+  const { data: registros = [], isLoading } = useRegistrosGlobais();
+  const { prestador, isResponsavelGhas, isAdmin, loading: loadingUser } = usePrestadorLogado();
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentRegistro, setCurrentRegistro] = useState<RegistroGlobal | null>(null);
-  const [newMes, setNewMes] = useState<MesAvaliacao | ''>('');
+  const [newMes, setNewMes] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Verificar se o usuário tem permissão
   useEffect(() => {
-    if (!prestadorLogado.responsavel_ghas) {
+    if (!loadingUser && !isResponsavelGhas && !isAdmin) {
       toast({
         title: 'Acesso negado',
         description: 'Você não tem permissão para acessar esta página.',
@@ -49,7 +68,7 @@ export default function RegistroGlobalPage() {
       });
       navigate('/registro');
     }
-  }, [navigate, toast]);
+  }, [loadingUser, isResponsavelGhas, isAdmin, navigate, toast]);
 
   // Meses já registrados
   const mesesRegistrados = registros.map((r) => r.mes);
@@ -67,27 +86,13 @@ export default function RegistroGlobalPage() {
       return;
     }
 
-    const novoRegistro: RegistroGlobal = {
-      id: (registros.length + 1).toString(),
-      mes: newMes as MesAvaliacao,
-      registrado_por_id: prestadorLogado.id,
-      faixa4_nps_global: 0,
-      faixa4_churn: 0,
-      faixa4_uso_ava: 0,
-      criado_em: new Date().toISOString(),
-      atualizado_em: new Date().toISOString(),
-    };
-
-    setRegistros((prev) => [...prev, novoRegistro]);
-    setCurrentRegistro(novoRegistro);
-    setIsNewDialogOpen(false);
-    setIsFormOpen(true);
-    setNewMes('');
-
+    // Por enquanto, apenas simular criação local
     toast({
-      title: 'Registro criado',
-      description: `Registro global de ${newMes} iniciado.`,
+      title: 'Funcionalidade em desenvolvimento',
+      description: 'A criação de registros globais será implementada em breve.',
     });
+    setIsNewDialogOpen(false);
+    setNewMes('');
   };
 
   const handleEditarRegistro = (registro: RegistroGlobal) => {
@@ -98,17 +103,9 @@ export default function RegistroGlobalPage() {
   const handleSalvarRegistro = () => {
     if (!currentRegistro) return;
 
-    setRegistros((prev) =>
-      prev.map((r) =>
-        r.id === currentRegistro.id
-          ? { ...currentRegistro, atualizado_em: new Date().toISOString() }
-          : r
-      )
-    );
-
     toast({
-      title: 'Registro salvo',
-      description: 'Os indicadores globais foram salvos com sucesso.',
+      title: 'Funcionalidade em desenvolvimento',
+      description: 'A edição de registros globais será implementada em breve.',
     });
 
     setIsFormOpen(false);
@@ -120,7 +117,17 @@ export default function RegistroGlobalPage() {
     setCurrentRegistro({ ...currentRegistro, [field]: value });
   };
 
-  if (!prestadorLogado.responsavel_ghas) {
+  if (loadingUser || isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isResponsavelGhas && !isAdmin) {
     return null;
   }
 
@@ -209,19 +216,19 @@ export default function RegistroGlobalPage() {
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground mb-1">NPS Global</p>
                           <p className="text-lg font-bold text-primary">
-                            {registro.faixa4_nps_global}
+                            {Number(registro.faixa4_nps_global)}
                           </p>
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground mb-1">Churn</p>
                           <p className="text-lg font-bold text-primary">
-                            {registro.faixa4_churn}%
+                            {Number(registro.faixa4_churn)}%
                           </p>
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground mb-1">Uso AVA</p>
                           <p className="text-lg font-bold text-primary">
-                            {registro.faixa4_uso_ava}%
+                            {Number(registro.faixa4_uso_ava)}%
                           </p>
                         </div>
                       </div>
@@ -246,7 +253,7 @@ export default function RegistroGlobalPage() {
 
           <div className="py-4">
             <Label className="input-label mb-2 block">Mês de Avaliação</Label>
-            <Select value={newMes} onValueChange={(v) => setNewMes(v as MesAvaliacao)}>
+            <Select value={newMes} onValueChange={setNewMes}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o mês..." />
               </SelectTrigger>
@@ -310,14 +317,14 @@ export default function RegistroGlobalPage() {
                     </div>
                     <div className="flex items-center gap-4">
                       <Slider
-                        value={[currentRegistro.faixa4_nps_global]}
+                        value={[Number(currentRegistro.faixa4_nps_global)]}
                         onValueChange={([v]) => updateField('faixa4_nps_global', v)}
                         max={100}
                         step={1}
                         className="flex-1"
                       />
                       <span className="w-12 text-right font-medium">
-                        {currentRegistro.faixa4_nps_global}
+                        {Number(currentRegistro.faixa4_nps_global)}
                       </span>
                     </div>
                   </div>
@@ -338,14 +345,14 @@ export default function RegistroGlobalPage() {
                     </div>
                     <div className="flex items-center gap-4">
                       <Slider
-                        value={[currentRegistro.faixa4_churn]}
+                        value={[Number(currentRegistro.faixa4_churn)]}
                         onValueChange={([v]) => updateField('faixa4_churn', v)}
                         max={100}
                         step={1}
                         className="flex-1"
                       />
                       <span className="w-12 text-right font-medium">
-                        {currentRegistro.faixa4_churn}%
+                        {Number(currentRegistro.faixa4_churn)}%
                       </span>
                     </div>
                   </div>
@@ -366,14 +373,14 @@ export default function RegistroGlobalPage() {
                     </div>
                     <div className="flex items-center gap-4">
                       <Slider
-                        value={[currentRegistro.faixa4_uso_ava]}
+                        value={[Number(currentRegistro.faixa4_uso_ava)]}
                         onValueChange={([v]) => updateField('faixa4_uso_ava', v)}
                         max={100}
                         step={1}
                         className="flex-1"
                       />
                       <span className="w-12 text-right font-medium">
-                        {currentRegistro.faixa4_uso_ava}%
+                        {Number(currentRegistro.faixa4_uso_ava)}%
                       </span>
                     </div>
                   </div>

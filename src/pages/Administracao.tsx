@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Search, UserCheck, UserX } from 'lucide-react';
+import { Plus, Pencil, Search, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,12 +21,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { mockPrestadores, mockUsuarios } from '@/data/mockData';
-import { Prestador, Situacao } from '@/types';
+import { usePrestadores, useUpdatePrestador } from '@/hooks/usePrestadores';
+import { Tables, Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
+type Prestador = Tables<'prestadores'>;
+type Situacao = Database['public']['Enums']['situacao_type'];
+
 export default function Administracao() {
-  const [prestadores, setPrestadores] = useState<Prestador[]>(mockPrestadores);
+  const { data: prestadores = [], isLoading } = usePrestadores();
+  const updatePrestador = useUpdatePrestador();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPrestador, setEditingPrestador] = useState<Prestador | null>(null);
@@ -35,7 +39,6 @@ export default function Administracao() {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
-    senha: '',
     situacao: 'ativo' as Situacao,
     avaliador_id: '',
     salario_fixo: '',
@@ -49,8 +52,9 @@ export default function Administracao() {
       p.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getAvaliadorNome = (avaliadorId: string) => {
-    const avaliador = mockUsuarios.find((u) => u.id === avaliadorId);
+  const getAvaliadorNome = (avaliadorId: string | null) => {
+    if (!avaliadorId) return 'Não definido';
+    const avaliador = prestadores.find((p) => p.id === avaliadorId);
     return avaliador?.nome || 'Não definido';
   };
 
@@ -60,19 +64,17 @@ export default function Administracao() {
       setFormData({
         nome: prestador.nome,
         email: prestador.email,
-        senha: '',
         situacao: prestador.situacao,
-        avaliador_id: prestador.avaliador_id,
+        avaliador_id: prestador.avaliador_id || '',
         salario_fixo: prestador.salario_fixo.toString(),
         responsavel_ghas: prestador.responsavel_ghas,
-        data_inicio_prestacao: prestador.data_inicio_prestacao,
+        data_inicio_prestacao: prestador.data_inicio_prestacao || '',
       });
     } else {
       setEditingPrestador(null);
       setFormData({
         nome: '',
         email: '',
-        senha: '',
         situacao: 'ativo',
         avaliador_id: '',
         salario_fixo: '',
@@ -83,8 +85,8 @@ export default function Administracao() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!formData.nome || !formData.email || !formData.avaliador_id || !formData.salario_fixo || !formData.data_inicio_prestacao) {
+  const handleSave = async () => {
+    if (!formData.nome || !formData.email || !formData.salario_fixo) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha todos os campos obrigatórios.',
@@ -93,62 +95,57 @@ export default function Administracao() {
       return;
     }
 
-    const now = new Date().toISOString();
-
     if (editingPrestador) {
-      setPrestadores((prev) =>
-        prev.map((p) =>
-          p.id === editingPrestador.id
-            ? {
-                ...p,
-                ...formData,
-                salario_fixo: parseFloat(formData.salario_fixo),
-                atualizado_em: now,
-              }
-            : p
-        )
-      );
-      toast({
-        title: 'Prestador atualizado',
-        description: `${formData.nome} foi atualizado com sucesso.`,
-      });
+      try {
+        await updatePrestador.mutateAsync({
+          id: editingPrestador.id,
+          nome: formData.nome,
+          email: formData.email,
+          situacao: formData.situacao,
+          avaliador_id: formData.avaliador_id || null,
+          salario_fixo: parseFloat(formData.salario_fixo),
+          responsavel_ghas: formData.responsavel_ghas,
+          data_inicio_prestacao: formData.data_inicio_prestacao || null,
+        });
+        toast({
+          title: 'Prestador atualizado',
+          description: `${formData.nome} foi atualizado com sucesso.`,
+        });
+        setIsDialogOpen(false);
+      } catch (error) {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível atualizar o prestador.',
+          variant: 'destructive',
+        });
+      }
     } else {
-      const newPrestador: Prestador = {
-        id: (prestadores.length + 1).toString(),
-        nome: formData.nome,
-        email: formData.email,
-        senha: formData.senha || '********',
-        situacao: formData.situacao,
-        avaliador_id: formData.avaliador_id,
-        salario_fixo: parseFloat(formData.salario_fixo),
-        responsavel_ghas: formData.responsavel_ghas,
-        data_inicio_prestacao: formData.data_inicio_prestacao,
-        criado_em: now,
-        atualizado_em: now,
-      };
-      setPrestadores((prev) => [...prev, newPrestador]);
       toast({
-        title: 'Prestador cadastrado',
-        description: `${formData.nome} foi cadastrado com sucesso.`,
+        title: 'Aviso',
+        description: 'Novos prestadores devem se cadastrar pela tela de login.',
       });
+      setIsDialogOpen(false);
     }
-
-    setIsDialogOpen(false);
   };
 
-  const handleToggleSituacao = (prestador: Prestador) => {
+  const handleToggleSituacao = async (prestador: Prestador) => {
     const novaSituacao: Situacao = prestador.situacao === 'ativo' ? 'inativo' : 'ativo';
-    setPrestadores((prev) =>
-      prev.map((p) =>
-        p.id === prestador.id
-          ? { ...p, situacao: novaSituacao, atualizado_em: new Date().toISOString() }
-          : p
-      )
-    );
-    toast({
-      title: novaSituacao === 'ativo' ? 'Prestador ativado' : 'Prestador inativado',
-      description: `${prestador.nome} está agora ${novaSituacao}.`,
-    });
+    try {
+      await updatePrestador.mutateAsync({
+        id: prestador.id,
+        situacao: novaSituacao,
+      });
+      toast({
+        title: novaSituacao === 'ativo' ? 'Prestador ativado' : 'Prestador inativado',
+        description: `${prestador.nome} está agora ${novaSituacao}.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alterar a situação.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -157,6 +154,16 @@ export default function Administracao() {
       currency: 'BRL',
     }).format(value);
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -170,10 +177,6 @@ export default function Administracao() {
                 Gerencie os prestadores do programa Acelera GHAS 2026
               </p>
             </div>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Prestador
-            </Button>
           </div>
         </div>
 
@@ -212,70 +215,79 @@ export default function Administracao() {
 
           {/* Table */}
           <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Situação</th>
-                  <th>Avaliador</th>
-                  <th>Salário Fixo</th>
-                  <th className="text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPrestadores.map((prestador) => (
-                  <tr key={prestador.id} className="animate-slide-up">
-                    <td className="font-medium text-foreground">{prestador.nome}</td>
-                    <td className="text-muted-foreground">{prestador.email}</td>
-                    <td>
-                      <Badge variant={prestador.situacao === 'ativo' ? 'success' : 'inactive'}>
-                        {prestador.situacao === 'ativo' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </td>
-                    <td className="text-muted-foreground">
-                      {getAvaliadorNome(prestador.avaliador_id)}
-                    </td>
-                    <td className="font-medium">{formatCurrency(prestador.salario_fixo)}</td>
-                    <td>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenDialog(prestador)}
-                          className="gap-1.5"
-                        >
-                          <Pencil className="w-4 h-4" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleSituacao(prestador)}
-                          className={
-                            prestador.situacao === 'ativo'
-                              ? 'text-muted-foreground hover:text-destructive'
-                              : 'text-success hover:text-success'
-                          }
-                        >
-                          {prestador.situacao === 'ativo' ? (
-                            <>
-                              <UserX className="w-4 h-4 mr-1.5" />
-                              Inativar
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="w-4 h-4 mr-1.5" />
-                              Ativar
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </td>
+            {filteredPrestadores.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-muted-foreground">Nenhum prestador cadastrado ainda.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Novos prestadores aparecem aqui após se cadastrarem.
+                </p>
+              </div>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Situação</th>
+                    <th>Avaliador</th>
+                    <th>Salário Fixo</th>
+                    <th className="text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredPrestadores.map((prestador) => (
+                    <tr key={prestador.id} className="animate-slide-up">
+                      <td className="font-medium text-foreground">{prestador.nome}</td>
+                      <td className="text-muted-foreground">{prestador.email}</td>
+                      <td>
+                        <Badge variant={prestador.situacao === 'ativo' ? 'success' : 'inactive'}>
+                          {prestador.situacao === 'ativo' ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </td>
+                      <td className="text-muted-foreground">
+                        {getAvaliadorNome(prestador.avaliador_id)}
+                      </td>
+                      <td className="font-medium">{formatCurrency(prestador.salario_fixo)}</td>
+                      <td>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenDialog(prestador)}
+                            className="gap-1.5"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleSituacao(prestador)}
+                            className={
+                              prestador.situacao === 'ativo'
+                                ? 'text-muted-foreground hover:text-destructive'
+                                : 'text-success hover:text-success'
+                            }
+                          >
+                            {prestador.situacao === 'ativo' ? (
+                              <>
+                                <UserX className="w-4 h-4 mr-1.5" />
+                                Inativar
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="w-4 h-4 mr-1.5" />
+                                Ativar
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -290,7 +302,7 @@ export default function Administracao() {
             <DialogDescription>
               {editingPrestador
                 ? 'Atualize as informações do prestador.'
-                : 'Cadastre um novo prestador no programa.'}
+                : 'Novos prestadores devem se cadastrar pela tela de login.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -317,19 +329,7 @@ export default function Administracao() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="email@exemplo.com"
-              />
-            </div>
-
-            <div className="input-group">
-              <Label htmlFor="senha" className="input-label">
-                Senha {editingPrestador ? '(deixe vazio para manter)' : '*'}
-              </Label>
-              <Input
-                id="senha"
-                type="password"
-                value={formData.senha}
-                onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                placeholder="••••••••"
+                disabled={!!editingPrestador}
               />
             </div>
 
@@ -370,7 +370,7 @@ export default function Administracao() {
 
             <div className="input-group">
               <Label htmlFor="data_inicio" className="input-label">
-                Data do Início da Prestação *
+                Data do Início da Prestação
               </Label>
               <Input
                 id="data_inicio"
@@ -382,7 +382,7 @@ export default function Administracao() {
 
             <div className="input-group">
               <Label htmlFor="avaliador" className="input-label">
-                Avaliador Responsável *
+                Avaliador Responsável
               </Label>
               <Select
                 value={formData.avaliador_id}
@@ -392,11 +392,13 @@ export default function Administracao() {
                   <SelectValue placeholder="Selecione o avaliador" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockUsuarios.map((usuario) => (
-                    <SelectItem key={usuario.id} value={usuario.id}>
-                      {usuario.nome}
-                    </SelectItem>
-                  ))}
+                  {prestadores
+                    .filter((p) => p.id !== editingPrestador?.id)
+                    .map((prestador) => (
+                      <SelectItem key={prestador.id} value={prestador.id}>
+                        {prestador.nome}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -419,8 +421,15 @@ export default function Administracao() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
-              {editingPrestador ? 'Salvar Alterações' : 'Cadastrar'}
+            <Button onClick={handleSave} disabled={updatePrestador.isPending}>
+              {updatePrestador.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                editingPrestador ? 'Salvar Alterações' : 'Cadastrar'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

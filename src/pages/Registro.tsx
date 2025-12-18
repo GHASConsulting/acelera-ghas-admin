@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar, Loader2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -27,38 +27,59 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { mockPrestadores, mockAvaliacoes, mockRegistrosGlobais, usuarioLogado } from '@/data/mockData';
-import { AvaliacaoMensal, MesAvaliacao, MESES_AVALIACAO, RegistroGlobal } from '@/types';
+import { usePrestadores } from '@/hooks/usePrestadores';
+import { useAvaliacoes, useRegistrosGlobais } from '@/hooks/useAvaliacoes';
+import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
+import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
+type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
+type Prestador = Tables<'prestadores'>;
+
+const MESES_AVALIACAO = [
+  'Janeiro/2026',
+  'Fevereiro/2026',
+  'Março/2026',
+  'Abril/2026',
+  'Maio/2026',
+  'Junho/2026',
+  'Julho/2026',
+  'Agosto/2026',
+  'Setembro/2026',
+  'Outubro/2026',
+  'Novembro/2026',
+  'Dezembro/2026',
+];
+
 export default function Registro() {
-  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoMensal[]>(mockAvaliacoes);
-  const [registrosGlobais] = useState<RegistroGlobal[]>(mockRegistrosGlobais);
+  const { data: prestadores = [], isLoading: loadingPrestadores } = usePrestadores();
+  const { data: registrosGlobais = [] } = useRegistrosGlobais();
+  const { prestador: prestadorLogado, loading: loadingUser } = usePrestadorLogado();
+  
   const [selectedPrestador, setSelectedPrestador] = useState<string>('');
+  const { data: avaliacoes = [], isLoading: loadingAvaliacoes } = useAvaliacoes(selectedPrestador || undefined);
+  
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentAvaliacao, setCurrentAvaliacao] = useState<AvaliacaoMensal | null>(null);
-  const [newMes, setNewMes] = useState<MesAvaliacao | ''>('');
+  const [newMes, setNewMes] = useState<string>('');
   const { toast } = useToast();
 
   // Filtrar prestadores ativos sob responsabilidade do usuário logado
-  const prestadoresDisponiveis = mockPrestadores.filter(
-    (p) => p.situacao === 'ativo' && p.avaliador_id === usuarioLogado.id
+  const prestadoresDisponiveis = prestadores.filter(
+    (p) => p.situacao === 'ativo' && p.avaliador_id === prestadorLogado?.id
   );
 
   const prestadorSelecionado = prestadoresDisponiveis.find((p) => p.id === selectedPrestador);
 
-  // Avaliações do prestador selecionado
-  const avaliacoesPrestador = avaliacoes.filter((a) => a.prestador_id === selectedPrestador);
-
   // Meses já avaliados
-  const mesesAvaliados = avaliacoesPrestador.map((a) => a.mes);
+  const mesesAvaliados = avaliacoes.map((a) => a.mes);
 
   // Meses disponíveis para nova avaliação
   const mesesDisponiveis = MESES_AVALIACAO.filter((m) => !mesesAvaliados.includes(m));
 
   // Buscar registro global do mês
-  const getRegistroGlobal = (mes: MesAvaliacao) => {
+  const getRegistroGlobal = (mes: string) => {
     return registrosGlobais.find((r) => r.mes === mes);
   };
 
@@ -72,58 +93,13 @@ export default function Registro() {
       return;
     }
 
-    // Verificar duplicidade
-    const existe = avaliacoes.some(
-      (a) => a.prestador_id === selectedPrestador && a.mes === newMes
-    );
-
-    if (existe) {
-      toast({
-        title: 'Avaliação já existe',
-        description: `Já existe uma avaliação para ${newMes}.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Buscar dados do registro global para pré-preencher a Faixa 4
-    const registroGlobal = getRegistroGlobal(newMes as MesAvaliacao);
-
-    const novaAvaliacao: AvaliacaoMensal = {
-      id: (avaliacoes.length + 1).toString(),
-      prestador_id: selectedPrestador,
-      avaliador_id: usuarioLogado.id,
-      mes: newMes as MesAvaliacao,
-      faixa1_ausencias: 0,
-      faixa1_pendencias: 0,
-      faixa2_produtividade: 0,
-      faixa2_qualidade: 0,
-      faixa2_chave_comportamento: 0,
-      faixa2_chave_habilidades: 0,
-      faixa2_chave_atitudes: 0,
-      faixa2_chave_valores: 0,
-      faixa3_nps_projeto: 0,
-      faixa3_sla: 0,
-      faixa3_backlog: 0,
-      faixa3_prioridades: 0,
-      // Dados da Faixa 4 vêm do registro global
-      faixa4_nps_global: registroGlobal?.faixa4_nps_global ?? 0,
-      faixa4_churn: registroGlobal?.faixa4_churn ?? 0,
-      faixa4_uso_ava: registroGlobal?.faixa4_uso_ava ?? 0,
-      criado_em: new Date().toISOString(),
-      atualizado_em: new Date().toISOString(),
-    };
-
-    setAvaliacoes((prev) => [...prev, novaAvaliacao]);
-    setCurrentAvaliacao(novaAvaliacao);
-    setIsNewDialogOpen(false);
-    setIsFormOpen(true);
-    setNewMes('');
-
+    // Por enquanto, apenas simular criação local
     toast({
-      title: 'Avaliação criada',
-      description: `Avaliação de ${newMes} iniciada.`,
+      title: 'Funcionalidade em desenvolvimento',
+      description: 'A criação de avaliações será implementada em breve.',
     });
+    setIsNewDialogOpen(false);
+    setNewMes('');
   };
 
   const handleEditarAvaliacao = (avaliacao: AvaliacaoMensal) => {
@@ -134,17 +110,9 @@ export default function Registro() {
   const handleSalvarAvaliacao = () => {
     if (!currentAvaliacao) return;
 
-    setAvaliacoes((prev) =>
-      prev.map((a) =>
-        a.id === currentAvaliacao.id
-          ? { ...currentAvaliacao, atualizado_em: new Date().toISOString() }
-          : a
-      )
-    );
-
     toast({
-      title: 'Avaliação salva',
-      description: 'As alterações foram salvas com sucesso.',
+      title: 'Funcionalidade em desenvolvimento',
+      description: 'A edição de avaliações será implementada em breve.',
     });
 
     setIsFormOpen(false);
@@ -157,19 +125,19 @@ export default function Registro() {
 
   const calcularScoreFaixa2 = (avaliacao: AvaliacaoMensal) => {
     const chaveTotal =
-      avaliacao.faixa2_chave_comportamento +
-      avaliacao.faixa2_chave_habilidades +
-      avaliacao.faixa2_chave_atitudes +
-      avaliacao.faixa2_chave_valores;
+      Number(avaliacao.faixa2_chave_comportamento) +
+      Number(avaliacao.faixa2_chave_habilidades) +
+      Number(avaliacao.faixa2_chave_atitudes) +
+      Number(avaliacao.faixa2_chave_valores);
     const chavePercentual = (chaveTotal / 4) * 100;
-    return (avaliacao.faixa2_produtividade * 0.3 + avaliacao.faixa2_qualidade * 0.3 + chavePercentual * 0.4).toFixed(1);
+    return (Number(avaliacao.faixa2_produtividade) * 0.3 + Number(avaliacao.faixa2_qualidade) * 0.3 + chavePercentual * 0.4).toFixed(1);
   };
 
   const calcularScoreFaixa3 = (avaliacao: AvaliacaoMensal) => {
     return (
-      (avaliacao.faixa3_nps_projeto * 0.4 +
-        (100 - avaliacao.faixa3_backlog) * 0.3 +
-        avaliacao.faixa3_prioridades * 0.3) /
+      (Number(avaliacao.faixa3_nps_projeto) * 0.4 +
+        (100 - Number(avaliacao.faixa3_backlog)) * 0.3 +
+        Number(avaliacao.faixa3_prioridades) * 0.3) /
       1
     ).toFixed(1);
   };
@@ -178,6 +146,16 @@ export default function Registro() {
     if (!currentAvaliacao) return;
     setCurrentAvaliacao({ ...currentAvaliacao, [field]: value });
   };
+
+  if (loadingPrestadores || loadingUser) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -237,14 +215,21 @@ export default function Registro() {
             )}
           </div>
 
+          {/* Loading */}
+          {loadingAvaliacoes && selectedPrestador && (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+
           {/* Lista de Avaliações */}
-          {selectedPrestador && (
+          {selectedPrestador && !loadingAvaliacoes && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">
                 Avaliações de {prestadorSelecionado?.nome}
               </h2>
 
-              {avaliacoesPrestador.length === 0 ? (
+              {avaliacoes.length === 0 ? (
                 <div className="bg-card rounded-xl border border-border p-12 text-center">
                   <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">
@@ -256,7 +241,7 @@ export default function Registro() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {avaliacoesPrestador.map((avaliacao) => (
+                  {avaliacoes.map((avaliacao) => (
                     <div
                       key={avaliacao.id}
                       className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer"
@@ -320,7 +305,7 @@ export default function Registro() {
 
           <div className="py-4">
             <Label className="input-label mb-2 block">Mês de Avaliação</Label>
-            <Select value={newMes} onValueChange={(v) => setNewMes(v as MesAvaliacao)}>
+            <Select value={newMes} onValueChange={setNewMes}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o mês..." />
               </SelectTrigger>
@@ -343,13 +328,13 @@ export default function Registro() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Formulário de Avaliação */}
+      {/* Dialog Formulário de Avaliação (simplificado) */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Avaliação - {currentAvaliacao?.mes}</DialogTitle>
             <DialogDescription>
-              Preencha as faixas de avaliação do prestador.
+              Visualize os dados da avaliação do prestador.
             </DialogDescription>
           </DialogHeader>
 
@@ -377,105 +362,14 @@ export default function Registro() {
                   </Badge>
                 </div>
 
-                {/* Data de Início da Prestação - Read Only */}
-                <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <Label className="input-label">Prestando Serviços Durante todo o Semestre de Apuração</Label>
-                    <Lock className="w-3 h-3 text-muted-foreground" />
+                <div className="grid grid-cols-2 gap-6 mt-4">
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Ausências</p>
+                    <p className="text-2xl font-bold text-foreground">{currentAvaliacao.faixa1_ausencias}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">Data do Início da Prestação:</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {prestadorSelecionado?.data_inicio_prestacao
-                      ? new Date(prestadorSelecionado.data_inicio_prestacao).toLocaleDateString('pt-BR')
-                      : 'Não informado'}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Ausências sem acordo prévio</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <div className="space-y-2">
-                              <p><strong>1 dia</strong> de Ausência → reduz <strong>30%</strong> do valor total</p>
-                              <p><strong>2 dias</strong> (consecutivos ou não) → reduz <strong>70%</strong> do valor total</p>
-                              <p><strong>3 dias ou mais</strong> → reduz <strong>100%</strong> do valor total</p>
-                              <hr className="my-2 border-border" />
-                              <p className="text-muted-foreground">
-                                <strong>Não é considerada ausência:</strong> (i) acordadas com 60 dias de antecedência; 
-                                (ii) acordada com 7 dias por motivos de saúde; (iii) urgência de saúde.
-                              </p>
-                              <p className="text-muted-foreground">
-                                <strong>É considerada ausência:</strong> (a) não presença física quando agenda é presencial; 
-                                (b) ausência sem justificativa em reuniões remotas/presenciais.
-                              </p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <RadioGroup
-                      value={currentAvaliacao.faixa1_ausencias.toString()}
-                      onValueChange={(v) => updateField('faixa1_ausencias', parseInt(v))}
-                      className="flex flex-wrap gap-4 mt-2"
-                    >
-                      {[0, 1, 2, 3].map((val) => (
-                        <div key={val} className="flex items-center space-x-2">
-                          <RadioGroupItem value={val.toString()} id={`ausencias-${val}`} />
-                          <Label htmlFor={`ausencias-${val}`} className="cursor-pointer">
-                            {val === 3 ? '3 ou mais' : val}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Pendências administrativas/fiscais</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-md text-sm" side="right">
-                            <div className="space-y-2">
-                              <p><strong>1 Notificação</strong> → reduz <strong>100%</strong> do valor total</p>
-                              <p>Cada pendência registrada no mês → reduz <strong>10%</strong> no pagamento total</p>
-                              <hr className="my-2 border-border" />
-                              <p className="text-muted-foreground"><strong>Pendências administrativas:</strong></p>
-                              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                                <li>Não registro do relatório semanal de atividades (RAT)</li>
-                                <li>Não registro do relatório diário de entregas (Diário GHAS)</li>
-                                <li>Não entrega de Nota Fiscal até 2 dias úteis após faturamento</li>
-                                <li>Falta de assinatura de contratos e aditivos</li>
-                                <li>Falta de assinatura de documentos administrativos</li>
-                                <li>Não entrega de Gestão de Viagens com 15 dias (ônibus) ou 30 dias (avião) de antecedência</li>
-                              </ul>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <RadioGroup
-                      value={currentAvaliacao.faixa1_pendencias.toString()}
-                      onValueChange={(v) => updateField('faixa1_pendencias', parseInt(v))}
-                      className="flex flex-wrap gap-3 mt-2"
-                    >
-                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => (
-                        <div key={val} className="flex items-center space-x-2">
-                          <RadioGroupItem value={val.toString()} id={`pendencias-${val}`} />
-                          <Label htmlFor={`pendencias-${val}`} className="cursor-pointer">
-                            {val === 10 ? '10 ou mais' : val}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Pendências</p>
+                    <p className="text-2xl font-bold text-foreground">{currentAvaliacao.faixa1_pendencias}</p>
                   </div>
                 </div>
               </div>
@@ -485,194 +379,20 @@ export default function Registro() {
                 <div className="faixa-header">
                   <span className="faixa-number">2</span>
                   <div>
-                    <h3 className="faixa-title">Produtividade Individual (Peso 40%)</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Avaliação de desempenho e competências
-                    </p>
+                    <h3 className="faixa-title">Produtividade Individual</h3>
+                    <p className="text-sm text-muted-foreground">Peso: 40%</p>
                   </div>
-                  <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Score</p>
-                    <p className="text-xl font-bold text-primary">
-                      {calcularScoreFaixa2(currentAvaliacao)}%
-                    </p>
-                  </div>
+                  <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa2(currentAvaliacao)}%</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Produtividade (Peso 30%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-md text-sm" side="right">
-                            <div className="space-y-2">
-                              <p><strong>Metas mínimas por nível:</strong></p>
-                              <ul className="list-disc list-inside space-y-1">
-                                <li><strong>N1:</strong> 120 chamados</li>
-                                <li><strong>N2:</strong> 60 chamados</li>
-                                <li><strong>Especialista:</strong> 60 chamados</li>
-                              </ul>
-                              <hr className="my-2 border-border" />
-                              <p className="text-muted-foreground">
-                                <strong>Obs.:</strong> Caso não atinja a meta mínima, o prestador deverá: 
-                                (a) possuir backlog do cliente com até no máximo 3 chamados abertos ao fim do mês ou 
-                                (b) todas as atividades de cronogramas e lista de prioridades entregues em dia conforme prazo acordado.
-                              </p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa2_produtividade]}
-                        onValueChange={([v]) => updateField('faixa2_produtividade', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {currentAvaliacao.faixa2_produtividade}%
-                      </span>
-                    </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Produtividade</p>
+                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa2_produtividade)}%</p>
                   </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Qualidade de Registros (Peso 30%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-md text-sm" side="right">
-                            <div className="space-y-2">
-                              <p>Avaliação por amostragem mínima de <strong>6 chamados mensais</strong> do prestador pelo Prestador Líder, verificando completude e especificação clara da entrega.</p>
-                              <hr className="my-2 border-border" />
-                              <p className="text-muted-foreground"><strong>Critérios de qualidade:</strong></p>
-                              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                                <li>Registro completo da análise da demanda</li>
-                                <li>Registro completo dos prazos e escopo acordados</li>
-                                <li>Registro em português claro e correto</li>
-                                <li>Registro completo da solução oferecida</li>
-                                <li>Registro das alterações em cadastros, processos, parâmetros e códigos</li>
-                                <li>Registro da validação e aceite do encerramento (quem, quando e como)</li>
-                              </ul>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa2_qualidade]}
-                        onValueChange={([v]) => updateField('faixa2_qualidade', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {currentAvaliacao.faixa2_qualidade}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center gap-2 mb-4">
-                    <p className="text-sm font-medium text-foreground">CHAVE GHAS (Peso 40%)</p>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-md text-sm" side="right">
-                          <div className="space-y-2">
-                            <p>Avaliação mensal do Prestador Líder mensurando se cada prestador atuou conforme as diretrizes de <strong>Comportamento, Habilidades, Atitudes e Valores</strong> contidos na CHAVE GHAS.</p>
-                            <hr className="my-2 border-border" />
-                            <p className="text-muted-foreground"><strong>Avaliação:</strong></p>
-                            <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                              <li>Prestador apresentou Comportamento conforme CHAVE GHAS?</li>
-                              <li>Prestador apresentou Habilidades conforme CHAVE GHAS?</li>
-                              <li>Prestador apresentou Atitudes conforme CHAVE GHAS?</li>
-                              <li>Prestador apresentou Alinhamento com os Valores conforme CHAVE GHAS?</li>
-                            </ul>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="input-group">
-                      <Label className="input-label">Comportamento</Label>
-                      <RadioGroup
-                        value={currentAvaliacao.faixa2_chave_comportamento.toString()}
-                        onValueChange={(v) => updateField('faixa2_chave_comportamento', parseInt(v))}
-                        className="flex gap-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1" id="comportamento-sim" />
-                          <Label htmlFor="comportamento-sim" className="cursor-pointer">Sim</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="0" id="comportamento-nao" />
-                          <Label htmlFor="comportamento-nao" className="cursor-pointer">Não</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div className="input-group">
-                      <Label className="input-label">Habilidades</Label>
-                      <RadioGroup
-                        value={currentAvaliacao.faixa2_chave_habilidades.toString()}
-                        onValueChange={(v) => updateField('faixa2_chave_habilidades', parseInt(v))}
-                        className="flex gap-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1" id="habilidades-sim" />
-                          <Label htmlFor="habilidades-sim" className="cursor-pointer">Sim</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="0" id="habilidades-nao" />
-                          <Label htmlFor="habilidades-nao" className="cursor-pointer">Não</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div className="input-group">
-                      <Label className="input-label">Atitudes</Label>
-                      <RadioGroup
-                        value={currentAvaliacao.faixa2_chave_atitudes.toString()}
-                        onValueChange={(v) => updateField('faixa2_chave_atitudes', parseInt(v))}
-                        className="flex gap-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1" id="atitudes-sim" />
-                          <Label htmlFor="atitudes-sim" className="cursor-pointer">Sim</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="0" id="atitudes-nao" />
-                          <Label htmlFor="atitudes-nao" className="cursor-pointer">Não</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div className="input-group">
-                      <Label className="input-label">Valores</Label>
-                      <RadioGroup
-                        value={currentAvaliacao.faixa2_chave_valores.toString()}
-                        onValueChange={(v) => updateField('faixa2_chave_valores', parseInt(v))}
-                        className="flex gap-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1" id="valores-sim" />
-                          <Label htmlFor="valores-sim" className="cursor-pointer">Sim</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="0" id="valores-nao" />
-                          <Label htmlFor="valores-nao" className="cursor-pointer">Não</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Qualidade</p>
+                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa2_qualidade)}%</p>
                   </div>
                 </div>
               </div>
@@ -682,240 +402,24 @@ export default function Registro() {
                 <div className="faixa-header">
                   <span className="faixa-number">3</span>
                   <div>
-                    <h3 className="faixa-title">Resultado com Cliente e Time (Peso 30%)</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Métricas de satisfação e entrega
-                    </p>
+                    <h3 className="faixa-title">Resultado com Cliente e Time</h3>
+                    <p className="text-sm text-muted-foreground">Peso: 30%</p>
                   </div>
-                  <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Score</p>
-                    <p className="text-xl font-bold text-primary">
-                      {calcularScoreFaixa3(currentAvaliacao)}%
-                    </p>
-                  </div>
+                  <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa3(currentAvaliacao)}%</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">NPS do Projeto (Peso 40%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p>NPS do cliente deve estar com score mensal <strong>igual ou superior a 75</strong>.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa3_nps_projeto]}
-                        onValueChange={([v]) => updateField('faixa3_nps_projeto', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {currentAvaliacao.faixa3_nps_projeto}
-                      </span>
-                    </div>
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">NPS Projeto</p>
+                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa3_nps_projeto)}</p>
                   </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">% de SLA Primeiro Atendimento (Peso 0%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p><strong>90%</strong> dos chamados abertos devem ter primeiro atendimento em até <strong>1 hora</strong>.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa3_sla]}
-                        onValueChange={([v]) => updateField('faixa3_sla', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {currentAvaliacao.faixa3_sla}%
-                      </span>
-                    </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Backlog</p>
+                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa3_backlog)}</p>
                   </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Backlog (Peso 30%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <div className="space-y-2">
-                              <p>Garantir que o mês não encerrou com backlog <strong>acima de 15%</strong> do total de chamados abertos.</p>
-                              <p className="text-muted-foreground">Garantir que não haja chamados abertos a mais de <strong>90 dias</strong> fora da Lista de prioridades com cronograma pré-determinado.</p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa3_backlog]}
-                        onValueChange={([v]) => updateField('faixa3_backlog', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {currentAvaliacao.faixa3_backlog}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Prioridades em Dia (Peso 30%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p><strong>95% ou mais</strong> das atividades devem estar sem atraso ao fim do mês.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa3_prioridades]}
-                        onValueChange={([v]) => updateField('faixa3_prioridades', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {currentAvaliacao.faixa3_prioridades}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Faixa 4 - Readonly */}
-              <div className="faixa-card opacity-80">
-                <div className="faixa-header">
-                  <span className="faixa-number">4</span>
-                  <div>
-                    <h3 className="faixa-title">Resultado Empresa (Peso 30%)</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Indicadores globais (multiplicador)
-                    </p>
-                  </div>
-                  <div className="ml-auto flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Dados do Registro Global</span>
-                  </div>
-                </div>
-
-                {!getRegistroGlobal(currentAvaliacao.mes) && (
-                  <div className="mb-4 p-3 bg-warning/10 rounded-lg border border-warning/20">
-                    <p className="text-sm text-warning flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      Registro global não encontrado para {currentAvaliacao.mes}. Os indicadores serão zerados.
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label text-muted-foreground">NPS Global GHAS (Peso 40%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p>NPS Mensal da GHAS deve estar com score mensal <strong>igual ou superior a 75</strong>.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa4_nps_global]}
-                        max={100}
-                        step={1}
-                        className="flex-1 opacity-50"
-                        disabled
-                      />
-                      <span className="w-12 text-right font-medium text-muted-foreground">
-                        {currentAvaliacao.faixa4_nps_global}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label text-muted-foreground">Churn (Peso 30%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p>O Churn da GHAS foi <strong>igual ou superior a 1</strong>?</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa4_churn]}
-                        max={100}
-                        step={1}
-                        className="flex-1 opacity-50"
-                        disabled
-                      />
-                      <span className="w-12 text-right font-medium text-muted-foreground">
-                        {currentAvaliacao.faixa4_churn}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label text-muted-foreground">Uso da AVA (Peso 30%)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p>Uso da AVA</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[currentAvaliacao.faixa4_uso_ava]}
-                        max={100}
-                        step={1}
-                        className="flex-1 opacity-50"
-                        disabled
-                      />
-                      <span className="w-12 text-right font-medium text-muted-foreground">
-                        {currentAvaliacao.faixa4_uso_ava}%
-                      </span>
-                    </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Prioridades</p>
+                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa3_prioridades)}%</p>
                   </div>
                 </div>
               </div>
@@ -924,9 +428,8 @@ export default function Registro() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-              Cancelar
+              Fechar
             </Button>
-            <Button onClick={handleSalvarAvaliacao}>Salvar Avaliação</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
