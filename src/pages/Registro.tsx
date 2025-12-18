@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -363,7 +369,32 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="input-group">
-                    <Label className="input-label">Ausências sem acordo prévio</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Ausências sem acordo prévio</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <div className="space-y-2">
+                              <p><strong>1 dia</strong> de Ausência → reduz <strong>30%</strong> do valor total</p>
+                              <p><strong>2 dias</strong> (consecutivos ou não) → reduz <strong>70%</strong> do valor total</p>
+                              <p><strong>3 dias ou mais</strong> → reduz <strong>100%</strong> do valor total</p>
+                              <hr className="my-2 border-border" />
+                              <p className="text-muted-foreground">
+                                <strong>Não é considerada ausência:</strong> (i) acordadas com 60 dias de antecedência; 
+                                (ii) acordada com 7 dias por motivos de saúde; (iii) urgência de saúde.
+                              </p>
+                              <p className="text-muted-foreground">
+                                <strong>É considerada ausência:</strong> (a) não presença física quando agenda é presencial; 
+                                (b) ausência sem justificativa em reuniões remotas/presenciais.
+                              </p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <RadioGroup
                       value={currentAvaliacao.faixa1_ausencias.toString()}
                       onValueChange={(v) => updateField('faixa1_ausencias', parseInt(v))}
@@ -380,7 +411,32 @@ export default function Registro() {
                     </RadioGroup>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">Pendências administrativas/fiscais</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Pendências administrativas/fiscais</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-md text-sm" side="right">
+                            <div className="space-y-2">
+                              <p><strong>1 Notificação</strong> → reduz <strong>100%</strong> do valor total</p>
+                              <p>Cada pendência registrada no mês → reduz <strong>10%</strong> no pagamento total</p>
+                              <hr className="my-2 border-border" />
+                              <p className="text-muted-foreground"><strong>Pendências administrativas:</strong></p>
+                              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                                <li>Não registro do relatório semanal de atividades (RAT)</li>
+                                <li>Não registro do relatório diário de entregas (Diário GHAS)</li>
+                                <li>Não entrega de Nota Fiscal até 2 dias úteis após faturamento</li>
+                                <li>Falta de assinatura de contratos e aditivos</li>
+                                <li>Falta de assinatura de documentos administrativos</li>
+                                <li>Não entrega de Gestão de Viagens com 15 dias (ônibus) ou 30 dias (avião) de antecedência</li>
+                              </ul>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <RadioGroup
                       value={currentAvaliacao.faixa1_pendencias.toString()}
                       onValueChange={(v) => updateField('faixa1_pendencias', parseInt(v))}
