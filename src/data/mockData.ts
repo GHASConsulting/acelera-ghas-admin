@@ -1,4 +1,4 @@
-import { Prestador, Usuario, AvaliacaoMensal } from '@/types';
+import { Prestador, Usuario, AvaliacaoMensal, RegistroGlobal } from '@/types';
 
 export const mockUsuarios: Usuario[] = [
   { id: '1', nome: 'Carlos Silva', email: 'carlos.silva@ghas.com.br' },
@@ -15,6 +15,7 @@ export const mockPrestadores: Prestador[] = [
     situacao: 'ativo',
     avaliador_id: '1',
     salario_fixo: 8500,
+    responsavel_ghas: true,
     criado_em: '2025-12-01T10:00:00Z',
     atualizado_em: '2025-12-01T10:00:00Z',
   },
@@ -26,6 +27,7 @@ export const mockPrestadores: Prestador[] = [
     situacao: 'ativo',
     avaliador_id: '1',
     salario_fixo: 7200,
+    responsavel_ghas: false,
     criado_em: '2025-12-02T14:30:00Z',
     atualizado_em: '2025-12-02T14:30:00Z',
   },
@@ -37,6 +39,7 @@ export const mockPrestadores: Prestador[] = [
     situacao: 'inativo',
     avaliador_id: '2',
     salario_fixo: 9000,
+    responsavel_ghas: false,
     criado_em: '2025-11-15T09:00:00Z',
     atualizado_em: '2025-12-10T11:20:00Z',
   },
@@ -48,6 +51,7 @@ export const mockPrestadores: Prestador[] = [
     situacao: 'ativo',
     avaliador_id: '2',
     salario_fixo: 6800,
+    responsavel_ghas: false,
     criado_em: '2025-12-05T16:45:00Z',
     atualizado_em: '2025-12-05T16:45:00Z',
   },
@@ -59,8 +63,22 @@ export const mockPrestadores: Prestador[] = [
     situacao: 'ativo',
     avaliador_id: '1',
     salario_fixo: 7800,
+    responsavel_ghas: false,
     criado_em: '2025-12-08T08:15:00Z',
     atualizado_em: '2025-12-08T08:15:00Z',
+  },
+];
+
+export const mockRegistrosGlobais: RegistroGlobal[] = [
+  {
+    id: '1',
+    mes: 'Janeiro/2026',
+    registrado_por_id: '1',
+    faixa4_nps_global: 78,
+    faixa4_churn: 5,
+    faixa4_uso_ava: 82,
+    criado_em: '2026-02-01T10:00:00Z',
+    atualizado_em: '2026-02-01T10:00:00Z',
   },
 ];
 
@@ -92,3 +110,6 @@ export const mockAvaliacoes: AvaliacaoMensal[] = [
 
 // Simular usuário logado (para filtro de prestadores)
 export const usuarioLogado: Usuario = mockUsuarios[0];
+
+// Simular prestador logado (para verificar permissão de Responsável GHAS)
+export const prestadorLogado: Prestador = mockPrestadores[0];

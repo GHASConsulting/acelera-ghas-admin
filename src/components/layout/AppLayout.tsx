@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, ClipboardList, BarChart3, Calculator, FileText, Settings } from 'lucide-react';
+import { Users, ClipboardList, BarChart3, Calculator, FileText, Settings, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { prestadorLogado } from '@/data/mockData';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -10,6 +11,7 @@ interface AppLayoutProps {
 const navigation = [
   { name: 'Administração', href: '/administracao', icon: Users },
   { name: 'Registro', href: '/registro', icon: ClipboardList },
+  { name: 'Registro Global', href: '/registro-global', icon: Globe, requiresGhas: true },
   { name: 'Cálculo', href: '/calculo', icon: Calculator },
   { name: 'Simulador', href: '/simulador', icon: BarChart3 },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
@@ -33,24 +35,26 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
 
         <nav className="p-4 space-y-1">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-primary'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
-            );
-          })}
+          {navigation
+            .filter((item) => !item.requiresGhas || prestadorLogado.responsavel_ghas)
+            .map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-primary'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">

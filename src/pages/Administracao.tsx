@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export default function Administracao() {
     situacao: 'ativo' as Situacao,
     avaliador_id: '',
     salario_fixo: '',
+    responsavel_ghas: false,
   });
 
   const filteredPrestadores = prestadores.filter(
@@ -61,6 +63,7 @@ export default function Administracao() {
         situacao: prestador.situacao,
         avaliador_id: prestador.avaliador_id,
         salario_fixo: prestador.salario_fixo.toString(),
+        responsavel_ghas: prestador.responsavel_ghas,
       });
     } else {
       setEditingPrestador(null);
@@ -71,6 +74,7 @@ export default function Administracao() {
         situacao: 'ativo',
         avaliador_id: '',
         salario_fixo: '',
+        responsavel_ghas: false,
       });
     }
     setIsDialogOpen(true);
@@ -108,9 +112,13 @@ export default function Administracao() {
     } else {
       const newPrestador: Prestador = {
         id: (prestadores.length + 1).toString(),
-        ...formData,
+        nome: formData.nome,
+        email: formData.email,
         senha: formData.senha || '********',
+        situacao: formData.situacao,
+        avaliador_id: formData.avaliador_id,
         salario_fixo: parseFloat(formData.salario_fixo),
+        responsavel_ghas: formData.responsavel_ghas,
         criado_em: now,
         atualizado_em: now,
       };
@@ -375,6 +383,19 @@ export default function Administracao() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="responsavel_ghas"
+                checked={formData.responsavel_ghas}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, responsavel_ghas: checked === true })
+                }
+              />
+              <Label htmlFor="responsavel_ghas" className="text-sm font-medium cursor-pointer">
+                Responsável GHAS
+              </Label>
             </div>
           </div>
 

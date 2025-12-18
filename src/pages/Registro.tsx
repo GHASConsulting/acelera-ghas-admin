@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -27,12 +27,13 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { mockPrestadores, mockAvaliacoes, usuarioLogado } from '@/data/mockData';
-import { AvaliacaoMensal, MesAvaliacao, MESES_AVALIACAO } from '@/types';
+import { mockPrestadores, mockAvaliacoes, mockRegistrosGlobais, usuarioLogado } from '@/data/mockData';
+import { AvaliacaoMensal, MesAvaliacao, MESES_AVALIACAO, RegistroGlobal } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Registro() {
   const [avaliacoes, setAvaliacoes] = useState<AvaliacaoMensal[]>(mockAvaliacoes);
+  const [registrosGlobais] = useState<RegistroGlobal[]>(mockRegistrosGlobais);
   const [selectedPrestador, setSelectedPrestador] = useState<string>('');
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -55,6 +56,11 @@ export default function Registro() {
 
   // Meses disponíveis para nova avaliação
   const mesesDisponiveis = MESES_AVALIACAO.filter((m) => !mesesAvaliados.includes(m));
+
+  // Buscar registro global do mês
+  const getRegistroGlobal = (mes: MesAvaliacao) => {
+    return registrosGlobais.find((r) => r.mes === mes);
+  };
 
   const handleCriarAvaliacao = () => {
     if (!selectedPrestador || !newMes) {
@@ -80,6 +86,9 @@ export default function Registro() {
       return;
     }
 
+    // Buscar dados do registro global para pré-preencher a Faixa 4
+    const registroGlobal = getRegistroGlobal(newMes as MesAvaliacao);
+
     const novaAvaliacao: AvaliacaoMensal = {
       id: (avaliacoes.length + 1).toString(),
       prestador_id: selectedPrestador,
@@ -97,9 +106,10 @@ export default function Registro() {
       faixa3_sla: 0,
       faixa3_backlog: 0,
       faixa3_prioridades: 0,
-      faixa4_nps_global: 0,
-      faixa4_churn: 0,
-      faixa4_uso_ava: 0,
+      // Dados da Faixa 4 vêm do registro global
+      faixa4_nps_global: registroGlobal?.faixa4_nps_global ?? 0,
+      faixa4_churn: registroGlobal?.faixa4_churn ?? 0,
+      faixa4_uso_ava: registroGlobal?.faixa4_uso_ava ?? 0,
       criado_em: new Date().toISOString(),
       atualizado_em: new Date().toISOString(),
     };
@@ -785,8 +795,8 @@ export default function Registro() {
                 </div>
               </div>
 
-              {/* Faixa 4 */}
-              <div className="faixa-card">
+              {/* Faixa 4 - Readonly */}
+              <div className="faixa-card opacity-80">
                 <div className="faixa-header">
                   <span className="faixa-number">4</span>
                   <div>
@@ -795,12 +805,25 @@ export default function Registro() {
                       Indicadores globais (multiplicador)
                     </p>
                   </div>
+                  <div className="ml-auto flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Dados do Registro Global</span>
+                  </div>
                 </div>
+
+                {!getRegistroGlobal(currentAvaliacao.mes) && (
+                  <div className="mb-4 p-3 bg-warning/10 rounded-lg border border-warning/20">
+                    <p className="text-sm text-warning flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Registro global não encontrado para {currentAvaliacao.mes}. Os indicadores serão zerados.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-6">
                   <div className="input-group">
                     <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">NPS Global GHAS (Peso 40%)</Label>
+                      <Label className="input-label text-muted-foreground">NPS Global GHAS (Peso 40%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -815,19 +838,19 @@ export default function Registro() {
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa4_nps_global]}
-                        onValueChange={([v]) => updateField('faixa4_nps_global', v)}
                         max={100}
                         step={1}
-                        className="flex-1"
+                        className="flex-1 opacity-50"
+                        disabled
                       />
-                      <span className="w-12 text-right font-medium">
+                      <span className="w-12 text-right font-medium text-muted-foreground">
                         {currentAvaliacao.faixa4_nps_global}
                       </span>
                     </div>
                   </div>
                   <div className="input-group">
                     <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Churn (Peso 30%)</Label>
+                      <Label className="input-label text-muted-foreground">Churn (Peso 30%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -842,19 +865,19 @@ export default function Registro() {
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa4_churn]}
-                        onValueChange={([v]) => updateField('faixa4_churn', v)}
                         max={100}
                         step={1}
-                        className="flex-1"
+                        className="flex-1 opacity-50"
+                        disabled
                       />
-                      <span className="w-12 text-right font-medium">
+                      <span className="w-12 text-right font-medium text-muted-foreground">
                         {currentAvaliacao.faixa4_churn}%
                       </span>
                     </div>
                   </div>
                   <div className="input-group">
                     <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Uso da AVA (Peso 30%)</Label>
+                      <Label className="input-label text-muted-foreground">Uso da AVA (Peso 30%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -869,12 +892,12 @@ export default function Registro() {
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa4_uso_ava]}
-                        onValueChange={([v]) => updateField('faixa4_uso_ava', v)}
                         max={100}
                         step={1}
-                        className="flex-1"
+                        className="flex-1 opacity-50"
+                        disabled
                       />
-                      <span className="w-12 text-right font-medium">
+                      <span className="w-12 text-right font-medium text-muted-foreground">
                         {currentAvaliacao.faixa4_uso_ava}%
                       </span>
                     </div>

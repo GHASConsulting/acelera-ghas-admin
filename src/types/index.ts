@@ -8,6 +8,7 @@ export interface Prestador {
   situacao: Situacao;
   avaliador_id: string;
   salario_fixo: number;
+  responsavel_ghas: boolean;
   criado_em: string;
   atualizado_em: string;
 }
@@ -31,6 +32,17 @@ export type MesAvaliacao =
   | 'Outubro/2026'
   | 'Novembro/2026'
   | 'Dezembro/2026';
+
+export interface RegistroGlobal {
+  id: string;
+  mes: MesAvaliacao;
+  registrado_por_id: string;
+  faixa4_nps_global: number;
+  faixa4_churn: number;
+  faixa4_uso_ava: number;
+  criado_em: string;
+  atualizado_em: string;
+}
 
 export interface AvaliacaoMensal {
   id: string;
