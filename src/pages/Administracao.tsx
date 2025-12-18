@@ -22,8 +22,11 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { usePrestadores, useUpdatePrestador } from '@/hooks/usePrestadores';
+import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables, Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 type Prestador = Tables<'prestadores'>;
 type Situacao = Database['public']['Enums']['situacao_type'];
@@ -31,14 +34,18 @@ type Situacao = Database['public']['Enums']['situacao_type'];
 export default function Administracao() {
   const { data: prestadores = [], isLoading } = usePrestadores();
   const updatePrestador = useUpdatePrestador();
+  const { isAdmin, loading: loadingUser } = usePrestadorLogado();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPrestador, setEditingPrestador] = useState<Prestador | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
+    senha: '',
     situacao: 'ativo' as Situacao,
     avaliador_id: '',
     salario_fixo: '',
@@ -64,6 +71,7 @@ export default function Administracao() {
       setFormData({
         nome: prestador.nome,
         email: prestador.email,
+        senha: '',
         situacao: prestador.situacao,
         avaliador_id: prestador.avaliador_id || '',
         salario_fixo: prestador.salario_fixo.toString(),
@@ -75,6 +83,7 @@ export default function Administracao() {
       setFormData({
         nome: '',
         email: '',
+        senha: '',
         situacao: 'ativo',
         avaliador_id: '',
         salario_fixo: '',
@@ -89,13 +98,16 @@ export default function Administracao() {
     if (!formData.nome || !formData.email || !formData.salario_fixo) {
       toast({
         title: 'Campos obrigatórios',
-        description: 'Preencha todos os campos obrigatórios.',
+        description: 'Preencha nome, email e salário fixo.',
         variant: 'destructive',
       });
       return;
     }
 
+    setIsSaving(true);
+
     if (editingPrestador) {
+      // Atualizar prestador existente
       try {
         await updatePrestador.mutateAsync({
           id: editingPrestador.id,
@@ -120,12 +132,59 @@ export default function Administracao() {
         });
       }
     } else {
-      toast({
-        title: 'Aviso',
-        description: 'Novos prestadores devem se cadastrar pela tela de login.',
-      });
-      setIsDialogOpen(false);
+      // Criar novo prestador via Edge Function
+      if (!formData.senha || formData.senha.length < 6) {
+        toast({
+          title: 'Senha obrigatória',
+          description: 'A senha deve ter no mínimo 6 caracteres.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+
+        const response = await supabase.functions.invoke('create-prestador', {
+          body: {
+            email: formData.email,
+            password: formData.senha,
+            nome: formData.nome,
+            salario_fixo: parseFloat(formData.salario_fixo),
+            data_inicio_prestacao: formData.data_inicio_prestacao || null,
+            avaliador_id: formData.avaliador_id || null,
+            responsavel_ghas: formData.responsavel_ghas,
+          },
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+
+        if (response.data.error) {
+          throw new Error(response.data.error);
+        }
+
+        toast({
+          title: 'Prestador criado',
+          description: `${formData.nome} foi cadastrado com sucesso.`,
+        });
+        
+        // Refresh the list
+        queryClient.invalidateQueries({ queryKey: ['prestadores'] });
+        setIsDialogOpen(false);
+      } catch (error: any) {
+        toast({
+          title: 'Erro ao criar prestador',
+          description: error.message || 'Não foi possível criar o prestador.',
+          variant: 'destructive',
+        });
+      }
     }
+
+    setIsSaving(false);
   };
 
   const handleToggleSituacao = async (prestador: Prestador) => {
@@ -155,7 +214,7 @@ export default function Administracao() {
     }).format(value);
   };
 
-  if (isLoading) {
+  if (isLoading || loadingUser) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-96">
@@ -177,6 +236,12 @@ export default function Administracao() {
                 Gerencie os prestadores do programa Acelera GHAS 2026
               </p>
             </div>
+            {isAdmin && (
+              <Button onClick={() => handleOpenDialog()} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Prestador
+              </Button>
+            )}
           </div>
         </div>
 
@@ -218,9 +283,11 @@ export default function Administracao() {
             {filteredPrestadores.length === 0 ? (
               <div className="p-12 text-center">
                 <p className="text-muted-foreground">Nenhum prestador cadastrado ainda.</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Novos prestadores aparecem aqui após se cadastrarem.
-                </p>
+                {isAdmin && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Clique em "Novo Prestador" para cadastrar.
+                  </p>
+                )}
               </div>
             ) : (
               <table className="data-table">
@@ -250,37 +317,41 @@ export default function Administracao() {
                       <td className="font-medium">{formatCurrency(prestador.salario_fixo)}</td>
                       <td>
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDialog(prestador)}
-                            className="gap-1.5"
-                          >
-                            <Pencil className="w-4 h-4" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleSituacao(prestador)}
-                            className={
-                              prestador.situacao === 'ativo'
-                                ? 'text-muted-foreground hover:text-destructive'
-                                : 'text-success hover:text-success'
-                            }
-                          >
-                            {prestador.situacao === 'ativo' ? (
-                              <>
-                                <UserX className="w-4 h-4 mr-1.5" />
-                                Inativar
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="w-4 h-4 mr-1.5" />
-                                Ativar
-                              </>
-                            )}
-                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDialog(prestador)}
+                                className="gap-1.5"
+                              >
+                                <Pencil className="w-4 h-4" />
+                                Editar
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleToggleSituacao(prestador)}
+                                className={
+                                  prestador.situacao === 'ativo'
+                                    ? 'text-muted-foreground hover:text-destructive'
+                                    : 'text-success hover:text-success'
+                                }
+                              >
+                                {prestador.situacao === 'ativo' ? (
+                                  <>
+                                    <UserX className="w-4 h-4 mr-1.5" />
+                                    Inativar
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-4 h-4 mr-1.5" />
+                                    Ativar
+                                  </>
+                                )}
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -302,7 +373,7 @@ export default function Administracao() {
             <DialogDescription>
               {editingPrestador
                 ? 'Atualize as informações do prestador.'
-                : 'Novos prestadores devem se cadastrar pela tela de login.'}
+                : 'Cadastre um novo prestador no programa.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -332,6 +403,21 @@ export default function Administracao() {
                 disabled={!!editingPrestador}
               />
             </div>
+
+            {!editingPrestador && (
+              <div className="input-group">
+                <Label htmlFor="senha" className="input-label">
+                  Senha *
+                </Label>
+                <Input
+                  id="senha"
+                  type="password"
+                  value={formData.senha}
+                  onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="input-group">
@@ -421,8 +507,8 @@ export default function Administracao() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={updatePrestador.isPending}>
-              {updatePrestador.isPending ? (
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Salvando...
