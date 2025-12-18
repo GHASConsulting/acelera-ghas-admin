@@ -475,7 +475,32 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="input-group">
-                    <Label className="input-label">Produtividade (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Produtividade (Peso 30%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-md text-sm" side="right">
+                            <div className="space-y-2">
+                              <p><strong>Metas mínimas por nível:</strong></p>
+                              <ul className="list-disc list-inside space-y-1">
+                                <li><strong>N1:</strong> 120 chamados</li>
+                                <li><strong>N2:</strong> 60 chamados</li>
+                                <li><strong>Especialista:</strong> 60 chamados</li>
+                              </ul>
+                              <hr className="my-2 border-border" />
+                              <p className="text-muted-foreground">
+                                <strong>Obs.:</strong> Caso não atinja a meta mínima, o prestador deverá: 
+                                (a) possuir backlog do cliente com até no máximo 3 chamados abertos ao fim do mês ou 
+                                (b) todas as atividades de cronogramas e lista de prioridades entregues em dia conforme prazo acordado.
+                              </p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa2_produtividade]}
@@ -490,7 +515,31 @@ export default function Registro() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">Qualidade de Registros (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Qualidade de Registros (Peso 30%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-md text-sm" side="right">
+                            <div className="space-y-2">
+                              <p>Avaliação por amostragem mínima de <strong>6 chamados mensais</strong> do prestador pelo Prestador Líder, verificando completude e especificação clara da entrega.</p>
+                              <hr className="my-2 border-border" />
+                              <p className="text-muted-foreground"><strong>Critérios de qualidade:</strong></p>
+                              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                                <li>Registro completo da análise da demanda</li>
+                                <li>Registro completo dos prazos e escopo acordados</li>
+                                <li>Registro em português claro e correto</li>
+                                <li>Registro completo da solução oferecida</li>
+                                <li>Registro das alterações em cadastros, processos, parâmetros e códigos</li>
+                                <li>Registro da validação e aceite do encerramento (quem, quando e como)</li>
+                              </ul>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa2_qualidade]}
@@ -507,7 +556,29 @@ export default function Registro() {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-sm font-medium text-foreground mb-4">CHAVE GHAS (Peso 40%)</p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <p className="text-sm font-medium text-foreground">CHAVE GHAS (Peso 40%)</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-md text-sm" side="right">
+                          <div className="space-y-2">
+                            <p>Avaliação mensal do Prestador Líder mensurando se cada prestador atuou conforme as diretrizes de <strong>Comportamento, Habilidades, Atitudes e Valores</strong> contidos na CHAVE GHAS.</p>
+                            <hr className="my-2 border-border" />
+                            <p className="text-muted-foreground"><strong>Avaliação:</strong></p>
+                            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                              <li>Prestador apresentou Comportamento conforme CHAVE GHAS?</li>
+                              <li>Prestador apresentou Habilidades conforme CHAVE GHAS?</li>
+                              <li>Prestador apresentou Atitudes conforme CHAVE GHAS?</li>
+                              <li>Prestador apresentou Alinhamento com os Valores conforme CHAVE GHAS?</li>
+                            </ul>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="input-group">
                       <Label className="input-label">Comportamento</Label>
@@ -601,7 +672,19 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="input-group">
-                    <Label className="input-label">NPS do Projeto (Peso 40%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">NPS do Projeto (Peso 40%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <p>NPS do cliente deve estar com score mensal <strong>igual ou superior a 75</strong>.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa3_nps_projeto]}
@@ -616,7 +699,19 @@ export default function Registro() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">% de SLA Primeiro Atendimento (Peso 0%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">% de SLA Primeiro Atendimento (Peso 0%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <p><strong>90%</strong> dos chamados abertos devem ter primeiro atendimento em até <strong>1 hora</strong>.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa3_sla]}
@@ -631,7 +726,22 @@ export default function Registro() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">Backlog (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Backlog (Peso 30%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <div className="space-y-2">
+                              <p>Garantir que o mês não encerrou com backlog <strong>acima de 15%</strong> do total de chamados abertos.</p>
+                              <p className="text-muted-foreground">Garantir que não haja chamados abertos a mais de <strong>90 dias</strong> fora da Lista de prioridades com cronograma pré-determinado.</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa3_backlog]}
@@ -646,7 +756,19 @@ export default function Registro() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">Prioridades em Dia (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Prioridades em Dia (Peso 30%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <p><strong>95% ou mais</strong> das atividades devem estar sem atraso ao fim do mês.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa3_prioridades]}
@@ -677,7 +799,19 @@ export default function Registro() {
 
                 <div className="grid grid-cols-3 gap-6">
                   <div className="input-group">
-                    <Label className="input-label">NPS Global GHAS (Peso 40%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">NPS Global GHAS (Peso 40%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <p>NPS Mensal da GHAS deve estar com score mensal <strong>igual ou superior a 75</strong>.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa4_nps_global]}
@@ -692,7 +826,19 @@ export default function Registro() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">Churn (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Churn (Peso 30%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <p>O Churn da GHAS foi <strong>igual ou superior a 1</strong>?</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa4_churn]}
@@ -707,7 +853,19 @@ export default function Registro() {
                     </div>
                   </div>
                   <div className="input-group">
-                    <Label className="input-label">Uso da AVA (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="input-label">Uso da AVA (Peso 30%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-sm" side="right">
+                            <p>Uso da AVA</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[currentAvaliacao.faixa4_uso_ava]}
