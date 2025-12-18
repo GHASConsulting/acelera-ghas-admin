@@ -9,6 +9,7 @@ export interface Prestador {
   avaliador_id: string;
   salario_fixo: number;
   responsavel_ghas: boolean;
+  data_inicio_prestacao: string;
   criado_em: string;
   atualizado_em: string;
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -375,6 +375,21 @@ export default function Registro() {
                       <><AlertCircle className="w-3 h-3 mr-1" /> Inelegível</>
                     )}
                   </Badge>
+                </div>
+
+                {/* Data de Início da Prestação - Read Only */}
+                <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <Label className="input-label">Prestando Serviços Durante todo o Semestre de Apuração</Label>
+                    <Lock className="w-3 h-3 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">Data do Início da Prestação:</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {prestadorSelecionado?.data_inicio_prestacao
+                      ? new Date(prestadorSelecionado.data_inicio_prestacao).toLocaleDateString('pt-BR')
+                      : 'Não informado'}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">

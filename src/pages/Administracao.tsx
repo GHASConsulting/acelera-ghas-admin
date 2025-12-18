@@ -40,6 +40,7 @@ export default function Administracao() {
     avaliador_id: '',
     salario_fixo: '',
     responsavel_ghas: false,
+    data_inicio_prestacao: '',
   });
 
   const filteredPrestadores = prestadores.filter(
@@ -64,6 +65,7 @@ export default function Administracao() {
         avaliador_id: prestador.avaliador_id,
         salario_fixo: prestador.salario_fixo.toString(),
         responsavel_ghas: prestador.responsavel_ghas,
+        data_inicio_prestacao: prestador.data_inicio_prestacao,
       });
     } else {
       setEditingPrestador(null);
@@ -75,13 +77,14 @@ export default function Administracao() {
         avaliador_id: '',
         salario_fixo: '',
         responsavel_ghas: false,
+        data_inicio_prestacao: '',
       });
     }
     setIsDialogOpen(true);
   };
 
   const handleSave = () => {
-    if (!formData.nome || !formData.email || !formData.avaliador_id || !formData.salario_fixo) {
+    if (!formData.nome || !formData.email || !formData.avaliador_id || !formData.salario_fixo || !formData.data_inicio_prestacao) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha todos os campos obrigatórios.',
@@ -119,6 +122,7 @@ export default function Administracao() {
         avaliador_id: formData.avaliador_id,
         salario_fixo: parseFloat(formData.salario_fixo),
         responsavel_ghas: formData.responsavel_ghas,
+        data_inicio_prestacao: formData.data_inicio_prestacao,
         criado_em: now,
         atualizado_em: now,
       };
@@ -362,6 +366,18 @@ export default function Administracao() {
                   placeholder="0,00"
                 />
               </div>
+            </div>
+
+            <div className="input-group">
+              <Label htmlFor="data_inicio" className="input-label">
+                Data do Início da Prestação *
+              </Label>
+              <Input
+                id="data_inicio"
+                type="date"
+                value={formData.data_inicio_prestacao}
+                onChange={(e) => setFormData({ ...formData, data_inicio_prestacao: e.target.value })}
+              />
             </div>
 
             <div className="input-group">
