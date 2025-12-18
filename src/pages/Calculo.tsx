@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Calculator, AlertCircle, CheckCircle2, TrendingUp, Award, FileText, Calendar } from 'lucide-react';
+import { Calculator, AlertCircle, CheckCircle2, FileText, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -10,9 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockPrestadores, mockAvaliacoes, usuarioLogado } from '@/data/mockData';
-import { AvaliacaoMensal, MesAvaliacao, Prestador } from '@/types';
+import { usePrestadores } from '@/hooks/usePrestadores';
+import { useAvaliacoes } from '@/hooks/useAvaliacoes';
+import { Tables } from '@/integrations/supabase/types';
 import { Progress } from '@/components/ui/progress';
+
+type Prestador = Tables<'prestadores'>;
+type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
+type MesAvaliacao = string;
 
 type Periodo = 'mensal' | 'semestral_1' | 'semestral_2';
 type StatusCalculo = 'em_aberto' | 'simulado' | 'fechado';
@@ -53,11 +58,11 @@ interface ResultadoCalculo {
   };
 }
 
-const SEMESTRE_1_MESES: MesAvaliacao[] = [
+const SEMESTRE_1_MESES: string[] = [
   'Janeiro/2026', 'Fevereiro/2026', 'Março/2026', 'Abril/2026', 'Maio/2026', 'Junho/2026'
 ];
 
-const SEMESTRE_2_MESES: MesAvaliacao[] = [
+const SEMESTRE_2_MESES: string[] = [
   'Julho/2026', 'Agosto/2026', 'Setembro/2026', 'Outubro/2026', 'Novembro/2026', 'Dezembro/2026'
 ];
 
@@ -66,11 +71,14 @@ export default function Calculo() {
   const [selectedPeriodo, setSelectedPeriodo] = useState<Periodo>('mensal');
   const [selectedMes, setSelectedMes] = useState<MesAvaliacao | ''>('');
 
-  const prestadoresAtivos = mockPrestadores.filter((p) => p.situacao === 'ativo');
+  const { data: prestadores = [], isLoading: loadingPrestadores } = usePrestadores();
+  const { data: avaliacoes = [], isLoading: loadingAvaliacoes } = useAvaliacoes(selectedPrestador || undefined);
+
+  const prestadoresAtivos = prestadores.filter((p) => p.situacao === 'ativo');
   const prestadorSelecionado = prestadoresAtivos.find((p) => p.id === selectedPrestador);
 
   // Avaliações do prestador selecionado
-  const avaliacoesPrestador = mockAvaliacoes.filter((a) => a.prestador_id === selectedPrestador);
+  const avaliacoesPrestador = avaliacoes;
 
   // Avaliações filtradas pelo período
   const avaliacoesFiltradas = useMemo(() => {
@@ -92,20 +100,20 @@ export default function Calculo() {
     const totalAusencias = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_ausencias, 0);
     const totalPendencias = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_pendencias, 0);
 
-    const avgProdutividade = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa2_produtividade, 0) / avaliacoesFiltradas.length;
-    const avgQualidade = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa2_qualidade, 0) / avaliacoesFiltradas.length;
-    const avgChaveComportamento = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa2_chave_comportamento, 0) / avaliacoesFiltradas.length;
-    const avgChaveHabilidades = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa2_chave_habilidades, 0) / avaliacoesFiltradas.length;
-    const avgChaveAtitudes = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa2_chave_atitudes, 0) / avaliacoesFiltradas.length;
-    const avgChaveValores = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa2_chave_valores, 0) / avaliacoesFiltradas.length;
+    const avgProdutividade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_produtividade), 0) / avaliacoesFiltradas.length;
+    const avgQualidade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_qualidade), 0) / avaliacoesFiltradas.length;
+    const avgChaveComportamento = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_comportamento), 0) / avaliacoesFiltradas.length;
+    const avgChaveHabilidades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_habilidades), 0) / avaliacoesFiltradas.length;
+    const avgChaveAtitudes = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_atitudes), 0) / avaliacoesFiltradas.length;
+    const avgChaveValores = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_valores), 0) / avaliacoesFiltradas.length;
 
-    const avgNpsProjeto = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa3_nps_projeto, 0) / avaliacoesFiltradas.length;
-    const avgBacklog = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa3_backlog, 0) / avaliacoesFiltradas.length;
-    const avgPrioridades = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa3_prioridades, 0) / avaliacoesFiltradas.length;
+    const avgNpsProjeto = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_nps_projeto), 0) / avaliacoesFiltradas.length;
+    const avgBacklog = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_backlog), 0) / avaliacoesFiltradas.length;
+    const avgPrioridades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_prioridades), 0) / avaliacoesFiltradas.length;
 
-    const avgNpsGlobal = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa4_nps_global, 0) / avaliacoesFiltradas.length;
-    const avgChurn = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa4_churn, 0) / avaliacoesFiltradas.length;
-    const avgUsoAva = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa4_uso_ava, 0) / avaliacoesFiltradas.length;
+    const avgNpsGlobal = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa4_nps_global), 0) / avaliacoesFiltradas.length;
+    const avgChurn = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa4_churn), 0) / avaliacoesFiltradas.length;
+    const avgUsoAva = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa4_uso_ava), 0) / avaliacoesFiltradas.length;
 
     // FAIXA 1 - Elegibilidade
     let reducaoAusencias = 0;
@@ -120,7 +128,7 @@ export default function Calculo() {
     // FAIXA 2 - Produtividade Individual (40% do total)
     const chave_media = (avgChaveComportamento + avgChaveHabilidades + avgChaveAtitudes + avgChaveValores) / 4;
     const score_faixa2_raw = (avgProdutividade * 0.30) + (avgQualidade * 0.30) + (chave_media * 0.40);
-    const score_faixa2 = score_faixa2_raw * 0.40; // 40% do total
+    const score_faixa2 = score_faixa2_raw * 0.40;
 
     // FAIXA 3 - Resultado com Cliente e Time (30% do total)
     const nps_score = avgNpsProjeto >= 75 ? avgNpsProjeto : avgNpsProjeto * 0.5;
@@ -129,19 +137,19 @@ export default function Calculo() {
     
     const score_faixa3_raw = (nps_score * 0.40) + (backlog_score * 0.30) + (prioridades_score * 0.30);
     const atingiu_minimo_faixa3 = score_faixa3_raw >= 85;
-    const score_faixa3 = (atingiu_minimo_faixa3 ? score_faixa3_raw : score_faixa3_raw * 0.7) * 0.30; // 30% do total
+    const score_faixa3 = (atingiu_minimo_faixa3 ? score_faixa3_raw : score_faixa3_raw * 0.7) * 0.30;
 
     // FAIXA 4 - Multiplicador
     let multiplicador_faixa4 = 1.0;
     const atingiu_nps = avgNpsGlobal >= 75;
-    const atingiu_churn = avgChurn <= 10; // Limite estratégico assumido
+    const atingiu_churn = avgChurn <= 10;
     const atingiu_ava = avgUsoAva >= 50;
 
     const criterios_atingidos = [atingiu_nps, atingiu_churn, atingiu_ava].filter(Boolean).length;
     if (criterios_atingidos === 3) {
-      multiplicador_faixa4 = 1.3; // Resultado superado
+      multiplicador_faixa4 = 1.3;
     } else if (criterios_atingidos >= 2) {
-      multiplicador_faixa4 = 1.2; // Resultado atingido
+      multiplicador_faixa4 = 1.2;
     } else if (criterios_atingidos >= 1) {
       multiplicador_faixa4 = 1.1;
     }
@@ -149,7 +157,7 @@ export default function Calculo() {
     // Cálculo Final
     const soma_faixas = score_faixa2 + score_faixa3;
     const premio_percentual = elegivel ? (soma_faixas * (elegibilidade_percentual / 100) * multiplicador_faixa4) : 0;
-    const premio_valor = (prestadorSelecionado.salario_fixo * premio_percentual) / 100;
+    const premio_valor = (Number(prestadorSelecionado.salario_fixo) * premio_percentual) / 100;
 
     return {
       elegivel,
@@ -159,7 +167,7 @@ export default function Calculo() {
       multiplicador_faixa4,
       premio_percentual,
       premio_valor,
-      salario_base: prestadorSelecionado.salario_fixo,
+      salario_base: Number(prestadorSelecionado.salario_fixo),
       status: 'em_aberto',
       detalhes: {
         faixa1: {
@@ -198,6 +206,16 @@ export default function Calculo() {
   const formatPercent = (value: number) => {
     return `${value.toFixed(1)}%`;
   };
+
+  if (loadingPrestadores) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -256,7 +274,7 @@ export default function Calculo() {
               {selectedPeriodo === 'mensal' && (
                 <div>
                   <Label className="input-label mb-2 block">Mês</Label>
-                  <Select value={selectedMes} onValueChange={(v) => setSelectedMes(v as MesAvaliacao)}>
+                  <Select value={selectedMes} onValueChange={(v) => setSelectedMes(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o mês..." />
                     </SelectTrigger>
@@ -272,6 +290,13 @@ export default function Calculo() {
               )}
             </div>
           </div>
+
+          {/* Loading */}
+          {loadingAvaliacoes && selectedPrestador && (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
 
           {/* Resultado */}
           {resultado ? (
@@ -301,7 +326,7 @@ export default function Calculo() {
                       {resultado.elegivel ? 'Elegível' : 'Inelegível'}
                     </Badge>
                     <Badge variant="outline">
-                      {resultado.status === 'em_aberto' ? 'Em Aberto' : resultado.status === 'simulado' ? 'Simulado' : 'Fechado'}
+                      Em Aberto
                     </Badge>
                   </div>
                 </div>
@@ -356,10 +381,6 @@ export default function Calculo() {
                     )}
                   </div>
                 </div>
-
-                <div className="mt-4 p-3 bg-muted/20 rounded-lg text-sm text-muted-foreground">
-                  <p><strong>Regras:</strong> 1 ausência = -30% | 2 ausências = -70% | 3+ ausências = -100% | Cada pendência = -10%</p>
-                </div>
               </div>
 
               {/* Faixa 2 */}
@@ -393,10 +414,10 @@ export default function Calculo() {
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">CHAVE GHAS (40%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa2.chave_media)}</p>
+                      <p className="text-xs text-muted-foreground">Chave (40%)</p>
+                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa2.chave_media * 100)}</p>
                     </div>
-                    <Progress value={resultado.detalhes.faixa2.chave_media} className="h-2" />
+                    <Progress value={resultado.detalhes.faixa2.chave_media * 100} className="h-2" />
                   </div>
                 </div>
               </div>
@@ -407,7 +428,7 @@ export default function Calculo() {
                   <span className="faixa-number bg-yellow-100 text-yellow-700">🥇</span>
                   <div>
                     <h3 className="faixa-title">Faixa 3 – Resultado com Cliente e Time</h3>
-                    <p className="text-sm text-muted-foreground">Peso: 30% do total | Corte mínimo: 85%</p>
+                    <p className="text-sm text-muted-foreground">Peso: 30% do total</p>
                   </div>
                   <div className="ml-auto text-right">
                     <p className="text-xs text-muted-foreground">Score</p>
@@ -419,18 +440,16 @@ export default function Calculo() {
                   <div className="bg-muted/30 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-muted-foreground">NPS Projeto (40%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa3.nps_projeto)}</p>
+                      <p className="text-sm font-medium">{resultado.detalhes.faixa3.nps_projeto.toFixed(0)}</p>
                     </div>
                     <Progress value={resultado.detalhes.faixa3.nps_projeto} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-1">Meta: ≥75</p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-muted-foreground">Backlog (30%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa3.backlog)}</p>
+                      <p className="text-sm font-medium">{resultado.detalhes.faixa3.backlog.toFixed(0)} tasks</p>
                     </div>
-                    <Progress value={100 - resultado.detalhes.faixa3.backlog} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-1">Meta: ≤15%</p>
+                    <Progress value={Math.max(0, 100 - resultado.detalhes.faixa3.backlog)} className="h-2" />
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
@@ -438,25 +457,17 @@ export default function Calculo() {
                       <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa3.prioridades)}</p>
                     </div>
                     <Progress value={resultado.detalhes.faixa3.prioridades} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-1">Meta: ≥95%</p>
                   </div>
                 </div>
-
-                {!resultado.detalhes.faixa3.atingiu_minimo && (
-                  <div className="mt-4 p-3 bg-warning/10 rounded-lg border border-warning/20 text-sm text-warning flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    Score abaixo do corte mínimo (85%). Aplicada redução de 30%.
-                  </div>
-                )}
               </div>
 
               {/* Faixa 4 */}
               <div className="faixa-card">
                 <div className="faixa-header">
-                  <span className="faixa-number bg-primary/10 text-primary">🏆</span>
+                  <span className="faixa-number bg-purple-100 text-purple-700">🏆</span>
                   <div>
-                    <h3 className="faixa-title">Faixa 4 – Resultado Empresa (GHAS)</h3>
-                    <p className="text-sm text-muted-foreground">Multiplicador (não elimina)</p>
+                    <h3 className="faixa-title">Faixa 4 – Resultado Empresa</h3>
+                    <p className="text-sm text-muted-foreground">Multiplicador</p>
                   </div>
                   <div className="ml-auto text-right">
                     <p className="text-xs text-muted-foreground">Multiplicador</p>
@@ -466,108 +477,37 @@ export default function Calculo() {
 
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">NPS Global</p>
-                      <Badge variant={resultado.detalhes.faixa4.nps_global >= 75 ? 'success' : 'outline'} className="text-xs">
-                        {resultado.detalhes.faixa4.nps_global >= 75 ? 'Atingido' : 'Não atingido'}
-                      </Badge>
-                    </div>
-                    <p className="text-xl font-semibold text-foreground">{formatPercent(resultado.detalhes.faixa4.nps_global)}</p>
-                    <p className="text-xs text-muted-foreground">Meta: ≥75</p>
+                    <p className="text-xs text-muted-foreground mb-1">NPS Global</p>
+                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa4.nps_global.toFixed(0)}</p>
+                    <p className={`text-xs ${resultado.detalhes.faixa4.nps_global >= 75 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa4.nps_global >= 75 ? '✓ Meta atingida' : '✗ Abaixo da meta'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Churn</p>
-                      <Badge variant={resultado.detalhes.faixa4.churn <= 10 ? 'success' : 'outline'} className="text-xs">
-                        {resultado.detalhes.faixa4.churn <= 10 ? 'Atingido' : 'Não atingido'}
-                      </Badge>
-                    </div>
-                    <p className="text-xl font-semibold text-foreground">{formatPercent(resultado.detalhes.faixa4.churn)}</p>
-                    <p className="text-xs text-muted-foreground">Meta: ≤10%</p>
+                    <p className="text-xs text-muted-foreground mb-1">Churn</p>
+                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa4.churn.toFixed(1)}%</p>
+                    <p className={`text-xs ${resultado.detalhes.faixa4.churn <= 10 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa4.churn <= 10 ? '✓ Meta atingida' : '✗ Acima da meta'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Uso AVA</p>
-                      <Badge variant={resultado.detalhes.faixa4.uso_ava >= 50 ? 'success' : 'outline'} className="text-xs">
-                        {resultado.detalhes.faixa4.uso_ava >= 50 ? 'Atingido' : 'Não atingido'}
-                      </Badge>
-                    </div>
-                    <p className="text-xl font-semibold text-foreground">{formatPercent(resultado.detalhes.faixa4.uso_ava)}</p>
-                    <p className="text-xs text-muted-foreground">Meta: ≥50%</p>
+                    <p className="text-xs text-muted-foreground mb-1">Uso AVA</p>
+                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa4.uso_ava.toFixed(0)}%</p>
+                    <p className={`text-xs ${resultado.detalhes.faixa4.uso_ava >= 50 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa4.uso_ava >= 50 ? '✓ Meta atingida' : '✗ Abaixo da meta'}
+                    </p>
                   </div>
-                </div>
-
-                <div className="mt-4 p-3 bg-muted/20 rounded-lg text-sm text-muted-foreground">
-                  <p><strong>Multiplicadores:</strong> 3 critérios = ×1.3 | 2 critérios = ×1.2 | 1 critério = ×1.1 | 0 critérios = ×1.0</p>
-                </div>
-              </div>
-
-              {/* Resumo Final */}
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20 p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <Award className="w-8 h-8 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground">Resultado Final do Cálculo</h3>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Elegibilidade Aplicada</p>
-                    <p className="text-lg font-bold text-foreground">{formatPercent(resultado.elegibilidade_percentual)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Score Faixa 2</p>
-                    <p className="text-lg font-bold text-foreground">{formatPercent(resultado.score_faixa2)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Score Faixa 3</p>
-                    <p className="text-lg font-bold text-foreground">{formatPercent(resultado.score_faixa3)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Soma Faixas</p>
-                    <p className="text-lg font-bold text-foreground">{formatPercent(resultado.score_faixa2 + resultado.score_faixa3)}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Multiplicador Faixa 4</p>
-                    <p className="text-lg font-bold text-foreground">×{resultado.multiplicador_faixa4.toFixed(1)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Prêmio Percentual</p>
-                    <p className="text-lg font-bold text-primary">{formatPercent(resultado.premio_percentual)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Salário Base</p>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(resultado.salario_base)}</p>
-                  </div>
-                  <div className="text-center bg-primary/10 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Prêmio Final (R$)</p>
-                    <p className="text-2xl font-bold text-primary">{formatCurrency(resultado.premio_valor)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Auditoria */}
-              <div className="bg-card rounded-xl border border-border p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  <span>Calculado em: {new Date().toLocaleString('pt-BR')}</span>
-                  <span className="mx-2">|</span>
-                  <span>Versão: Acelera GHAS 2026 v1.0</span>
-                  <span className="mx-2">|</span>
-                  <span>Avaliações: {avaliacoesFiltradas.length} mês(es)</span>
                 </div>
               </div>
             </div>
-          ) : (
+          ) : selectedPrestador && !loadingAvaliacoes && (
             <div className="bg-card rounded-xl border border-border p-12 text-center">
               <Calculator className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                Selecione um prestador e período
+                Nenhuma avaliação encontrada
               </h3>
               <p className="text-muted-foreground">
-                Os dados de cálculo serão exibidos aqui com base nas avaliações registradas.
+                Selecione um período com avaliações registradas.
               </p>
             </div>
           )}
