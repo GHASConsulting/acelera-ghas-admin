@@ -6,6 +6,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -62,18 +67,33 @@ const MESES_AVALIACAO = [
   'Dezembro/2026',
 ];
 
-// Componente de tooltip de informação
+// Componente de tooltip de informação usando HoverCard para melhor visualização
 const InfoTooltip = ({ content }: { content: React.ReactNode }) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Info className="w-4 h-4 text-muted-foreground cursor-help inline-block ml-1" />
-      </TooltipTrigger>
-      <TooltipContent className="max-w-sm text-left whitespace-pre-line">
-        {content}
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
+  <HoverCard openDelay={100} closeDelay={100}>
+    <HoverCardTrigger asChild>
+      <button type="button" className="inline-flex items-center justify-center ml-1.5 focus:outline-none">
+        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+          <Info className="w-3 h-3 text-primary" />
+        </div>
+      </button>
+    </HoverCardTrigger>
+    <HoverCardContent 
+      className="w-80 p-4 text-sm" 
+      side="right" 
+      align="start"
+      sideOffset={8}
+    >
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-primary font-medium">
+          <Info className="w-4 h-4" />
+          <span>Instruções de Preenchimento</span>
+        </div>
+        <div className="text-muted-foreground whitespace-pre-line leading-relaxed text-xs">
+          {content}
+        </div>
+      </div>
+    </HoverCardContent>
+  </HoverCard>
 );
 
 // Textos de ajuda para cada campo
