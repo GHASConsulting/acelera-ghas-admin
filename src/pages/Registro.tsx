@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar, Loader2, Save } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar, Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -20,6 +20,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { usePrestadores } from '@/hooks/usePrestadores';
-import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao } from '@/hooks/useAvaliacoes';
+import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao, useDeleteAvaliacao } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +71,7 @@ export default function Registro() {
   
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentAvaliacao, setCurrentAvaliacao] = useState<Partial<AvaliacaoMensal> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
@@ -68,6 +79,7 @@ export default function Registro() {
 
   const createAvaliacao = useCreateAvaliacao();
   const updateAvaliacao = useUpdateAvaliacao();
+  const deleteAvaliacao = useDeleteAvaliacao();
 
   // Filtrar prestadores ativos sob responsabilidade do usuário logado (ou todos se admin)
   const prestadoresDisponiveis = prestadores.filter(
@@ -163,6 +175,31 @@ export default function Registro() {
       toast({
         title: 'Erro ao salvar',
         description: error.message || 'Ocorreu um erro inesperado.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteAvaliacao = async () => {
+    if (!currentAvaliacao?.id || !currentAvaliacao?.prestador_id) return;
+
+    try {
+      await deleteAvaliacao.mutateAsync({ 
+        id: currentAvaliacao.id, 
+        prestador_id: currentAvaliacao.prestador_id 
+      });
+      toast({
+        title: 'Avaliação excluída',
+        description: `Avaliação de ${currentAvaliacao.mes} foi excluída com sucesso.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setIsFormOpen(false);
+      setCurrentAvaliacao(null);
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message || 'Ocorreu um erro ao excluir a avaliação.',
         variant: 'destructive',
       });
     }
@@ -696,27 +733,61 @@ export default function Registro() {
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-              Cancelar
-            </Button>
+          <DialogFooter className="flex justify-between sm:justify-between">
             {isEditing && (
               <Button 
-                onClick={handleSalvarAvaliacao} 
-                disabled={updateAvaliacao.isPending}
+                variant="destructive" 
+                onClick={() => setIsDeleteDialogOpen(true)}
                 className="gap-2"
               >
-                {updateAvaliacao.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Salvar
+                <Trash2 className="w-4 h-4" />
+                Excluir
               </Button>
             )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                Cancelar
+              </Button>
+              {isEditing && (
+                <Button 
+                  onClick={handleSalvarAvaliacao} 
+                  disabled={updateAvaliacao.isPending}
+                  className="gap-2"
+                >
+                  {updateAvaliacao.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog Confirmar Exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a avaliação de <strong>{currentAvaliacao?.mes}</strong>? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAvaliacao}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
