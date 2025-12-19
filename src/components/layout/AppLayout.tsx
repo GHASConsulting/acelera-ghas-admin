@@ -46,7 +46,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {navigation
             .filter((item) => {
               if (item.requiresAdmin && !isAdmin) return false;
-              if (item.requiresGhas && !isResponsavelGhas && !isAdmin) return false;
+              if (item.requiresGhas && !isResponsavelGhas) return false;
               return true;
             })
             .map((item) => {
