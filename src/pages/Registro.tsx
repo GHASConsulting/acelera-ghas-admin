@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar, Loader2 } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar, Loader2, Save } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -25,10 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import { usePrestadores } from '@/hooks/usePrestadores';
-import { useAvaliacoes, useRegistrosGlobais } from '@/hooks/useAvaliacoes';
+import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
@@ -54,20 +54,24 @@ const MESES_AVALIACAO = [
 export default function Registro() {
   const { data: prestadores = [], isLoading: loadingPrestadores } = usePrestadores();
   const { data: registrosGlobais = [] } = useRegistrosGlobais();
-  const { prestador: prestadorLogado, loading: loadingUser } = usePrestadorLogado();
+  const { prestador: prestadorLogado, loading: loadingUser, isAdmin } = usePrestadorLogado();
   
   const [selectedPrestador, setSelectedPrestador] = useState<string>('');
   const { data: avaliacoes = [], isLoading: loadingAvaliacoes } = useAvaliacoes(selectedPrestador || undefined);
   
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [currentAvaliacao, setCurrentAvaliacao] = useState<AvaliacaoMensal | null>(null);
+  const [currentAvaliacao, setCurrentAvaliacao] = useState<Partial<AvaliacaoMensal> | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
   const { toast } = useToast();
 
-  // Filtrar prestadores ativos sob responsabilidade do usuário logado
+  const createAvaliacao = useCreateAvaliacao();
+  const updateAvaliacao = useUpdateAvaliacao();
+
+  // Filtrar prestadores ativos sob responsabilidade do usuário logado (ou todos se admin)
   const prestadoresDisponiveis = prestadores.filter(
-    (p) => p.situacao === 'ativo' && p.avaliador_id === prestadorLogado?.id
+    (p) => p.situacao === 'ativo' && (isAdmin || p.avaliador_id === prestadorLogado?.id)
   );
 
   const prestadorSelecionado = prestadoresDisponiveis.find((p) => p.id === selectedPrestador);
@@ -83,8 +87,8 @@ export default function Registro() {
     return registrosGlobais.find((r) => r.mes === mes);
   };
 
-  const handleCriarAvaliacao = () => {
-    if (!selectedPrestador || !newMes) {
+  const handleCriarAvaliacao = async () => {
+    if (!selectedPrestador || !newMes || !prestadorLogado) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Selecione o prestador e o mês.',
@@ -93,51 +97,96 @@ export default function Registro() {
       return;
     }
 
-    // Por enquanto, apenas simular criação local
-    toast({
-      title: 'Funcionalidade em desenvolvimento',
-      description: 'A criação de avaliações será implementada em breve.',
-    });
-    setIsNewDialogOpen(false);
-    setNewMes('');
+    try {
+      const novaAvaliacao = await createAvaliacao.mutateAsync({
+        prestador_id: selectedPrestador,
+        avaliador_id: prestadorLogado.id,
+        mes: newMes,
+      });
+
+      toast({
+        title: 'Avaliação criada',
+        description: `Avaliação de ${newMes} criada com sucesso.`,
+      });
+
+      setIsNewDialogOpen(false);
+      setNewMes('');
+      
+      // Abrir formulário para edição
+      setCurrentAvaliacao(novaAvaliacao);
+      setIsEditing(true);
+      setIsFormOpen(true);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao criar avaliação',
+        description: error.message || 'Ocorreu um erro inesperado.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleEditarAvaliacao = (avaliacao: AvaliacaoMensal) => {
     setCurrentAvaliacao({ ...avaliacao });
+    setIsEditing(true);
     setIsFormOpen(true);
   };
 
-  const handleSalvarAvaliacao = () => {
-    if (!currentAvaliacao) return;
+  const handleSalvarAvaliacao = async () => {
+    if (!currentAvaliacao || !currentAvaliacao.id) return;
 
-    toast({
-      title: 'Funcionalidade em desenvolvimento',
-      description: 'A edição de avaliações será implementada em breve.',
-    });
+    try {
+      await updateAvaliacao.mutateAsync({
+        id: currentAvaliacao.id,
+        faixa1_ausencias: currentAvaliacao.faixa1_ausencias,
+        faixa1_pendencias: currentAvaliacao.faixa1_pendencias,
+        faixa2_produtividade: currentAvaliacao.faixa2_produtividade,
+        faixa2_qualidade: currentAvaliacao.faixa2_qualidade,
+        faixa2_chave_comportamento: currentAvaliacao.faixa2_chave_comportamento,
+        faixa2_chave_habilidades: currentAvaliacao.faixa2_chave_habilidades,
+        faixa2_chave_atitudes: currentAvaliacao.faixa2_chave_atitudes,
+        faixa2_chave_valores: currentAvaliacao.faixa2_chave_valores,
+        faixa3_nps_projeto: currentAvaliacao.faixa3_nps_projeto,
+        faixa3_backlog: currentAvaliacao.faixa3_backlog,
+        faixa3_prioridades: currentAvaliacao.faixa3_prioridades,
+        faixa3_sla: currentAvaliacao.faixa3_sla,
+      });
 
-    setIsFormOpen(false);
-    setCurrentAvaliacao(null);
+      toast({
+        title: 'Avaliação salva',
+        description: 'As alterações foram salvas com sucesso.',
+      });
+
+      setIsFormOpen(false);
+      setCurrentAvaliacao(null);
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message || 'Ocorreu um erro inesperado.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const calcularElegibilidade = (avaliacao: AvaliacaoMensal) => {
-    return avaliacao.faixa1_ausencias === 0 && avaliacao.faixa1_pendencias === 0;
+  const calcularElegibilidade = (avaliacao: Partial<AvaliacaoMensal>) => {
+    return (avaliacao.faixa1_ausencias ?? 0) === 0 && (avaliacao.faixa1_pendencias ?? 0) === 0;
   };
 
-  const calcularScoreFaixa2 = (avaliacao: AvaliacaoMensal) => {
+  const calcularScoreFaixa2 = (avaliacao: Partial<AvaliacaoMensal>) => {
     const chaveTotal =
-      Number(avaliacao.faixa2_chave_comportamento) +
-      Number(avaliacao.faixa2_chave_habilidades) +
-      Number(avaliacao.faixa2_chave_atitudes) +
-      Number(avaliacao.faixa2_chave_valores);
+      Number(avaliacao.faixa2_chave_comportamento ?? 0) +
+      Number(avaliacao.faixa2_chave_habilidades ?? 0) +
+      Number(avaliacao.faixa2_chave_atitudes ?? 0) +
+      Number(avaliacao.faixa2_chave_valores ?? 0);
     const chavePercentual = (chaveTotal / 4) * 100;
-    return (Number(avaliacao.faixa2_produtividade) * 0.3 + Number(avaliacao.faixa2_qualidade) * 0.3 + chavePercentual * 0.4).toFixed(1);
+    return (Number(avaliacao.faixa2_produtividade ?? 0) * 0.3 + Number(avaliacao.faixa2_qualidade ?? 0) * 0.3 + chavePercentual * 0.4).toFixed(1);
   };
 
-  const calcularScoreFaixa3 = (avaliacao: AvaliacaoMensal) => {
+  const calcularScoreFaixa3 = (avaliacao: Partial<AvaliacaoMensal>) => {
     return (
-      (Number(avaliacao.faixa3_nps_projeto) * 0.4 +
-        (100 - Number(avaliacao.faixa3_backlog)) * 0.3 +
-        Number(avaliacao.faixa3_prioridades) * 0.3) /
+      (Number(avaliacao.faixa3_nps_projeto ?? 0) * 0.4 +
+        (100 - Number(avaliacao.faixa3_backlog ?? 0)) * 0.3 +
+        Number(avaliacao.faixa3_prioridades ?? 0) * 0.3) /
       1
     ).toFixed(1);
   };
@@ -328,19 +377,25 @@ export default function Registro() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Formulário de Avaliação (simplificado) */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      {/* Dialog Formulário de Avaliação */}
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsFormOpen(false);
+          setCurrentAvaliacao(null);
+          setIsEditing(false);
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Avaliação - {currentAvaliacao?.mes}</DialogTitle>
             <DialogDescription>
-              Visualize os dados da avaliação do prestador.
+              {isEditing ? 'Edite os dados da avaliação do prestador.' : 'Visualize os dados da avaliação do prestador.'}
             </DialogDescription>
           </DialogHeader>
 
           {currentAvaliacao && (
             <div className="space-y-6 py-4">
-              {/* Faixa 1 */}
+              {/* Faixa 1 - Elegibilidade */}
               <div className="faixa-card">
                 <div className="faixa-header">
                   <span className="faixa-number">1</span>
@@ -363,18 +418,30 @@ export default function Registro() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mt-4">
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Ausências</p>
-                    <p className="text-2xl font-bold text-foreground">{currentAvaliacao.faixa1_ausencias}</p>
+                  <div>
+                    <Label className="input-label">Ausências</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={currentAvaliacao.faixa1_ausencias ?? 0}
+                      onChange={(e) => updateField('faixa1_ausencias', parseInt(e.target.value) || 0)}
+                      disabled={!isEditing}
+                    />
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Pendências</p>
-                    <p className="text-2xl font-bold text-foreground">{currentAvaliacao.faixa1_pendencias}</p>
+                  <div>
+                    <Label className="input-label">Pendências</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={currentAvaliacao.faixa1_pendencias ?? 0}
+                      onChange={(e) => updateField('faixa1_pendencias', parseInt(e.target.value) || 0)}
+                      disabled={!isEditing}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Faixa 2 */}
+              {/* Faixa 2 - Produtividade Individual */}
               <div className="faixa-card">
                 <div className="faixa-header">
                   <span className="faixa-number">2</span>
@@ -385,19 +452,101 @@ export default function Registro() {
                   <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa2(currentAvaliacao)}%</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Produtividade</p>
-                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa2_produtividade)}%</p>
+                <div className="grid grid-cols-2 gap-6 mt-4">
+                  <div>
+                    <Label className="input-label">Produtividade (%)</Label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        value={[Number(currentAvaliacao.faixa2_produtividade ?? 0)]}
+                        onValueChange={([val]) => updateField('faixa2_produtividade', val)}
+                        max={100}
+                        step={1}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <span className="w-12 text-right font-medium">{currentAvaliacao.faixa2_produtividade ?? 0}%</span>
+                    </div>
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Qualidade</p>
-                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa2_qualidade)}%</p>
+                  <div>
+                    <Label className="input-label">Qualidade (%)</Label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        value={[Number(currentAvaliacao.faixa2_qualidade ?? 0)]}
+                        onValueChange={([val]) => updateField('faixa2_qualidade', val)}
+                        max={100}
+                        step={1}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <span className="w-12 text-right font-medium">{currentAvaliacao.faixa2_qualidade ?? 0}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label className="input-label mb-2 block">Competências-Chave (0 a 1)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Comportamento</Label>
+                      <div className="flex items-center gap-2">
+                        <Slider
+                          value={[Number(currentAvaliacao.faixa2_chave_comportamento ?? 0)]}
+                          onValueChange={([val]) => updateField('faixa2_chave_comportamento', val)}
+                          max={1}
+                          step={0.1}
+                          disabled={!isEditing}
+                          className="flex-1"
+                        />
+                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_comportamento ?? 0).toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Habilidades</Label>
+                      <div className="flex items-center gap-2">
+                        <Slider
+                          value={[Number(currentAvaliacao.faixa2_chave_habilidades ?? 0)]}
+                          onValueChange={([val]) => updateField('faixa2_chave_habilidades', val)}
+                          max={1}
+                          step={0.1}
+                          disabled={!isEditing}
+                          className="flex-1"
+                        />
+                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_habilidades ?? 0).toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Atitudes</Label>
+                      <div className="flex items-center gap-2">
+                        <Slider
+                          value={[Number(currentAvaliacao.faixa2_chave_atitudes ?? 0)]}
+                          onValueChange={([val]) => updateField('faixa2_chave_atitudes', val)}
+                          max={1}
+                          step={0.1}
+                          disabled={!isEditing}
+                          className="flex-1"
+                        />
+                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_atitudes ?? 0).toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Valores</Label>
+                      <div className="flex items-center gap-2">
+                        <Slider
+                          value={[Number(currentAvaliacao.faixa2_chave_valores ?? 0)]}
+                          onValueChange={([val]) => updateField('faixa2_chave_valores', val)}
+                          max={1}
+                          step={0.1}
+                          disabled={!isEditing}
+                          className="flex-1"
+                        />
+                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_valores ?? 0).toFixed(1)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Faixa 3 */}
+              {/* Faixa 3 - Resultado com Cliente e Time */}
               <div className="faixa-card">
                 <div className="faixa-header">
                   <span className="faixa-number">3</span>
@@ -408,18 +557,62 @@ export default function Registro() {
                   <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa3(currentAvaliacao)}%</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">NPS Projeto</p>
-                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa3_nps_projeto)}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
+                  <div>
+                    <Label className="input-label">NPS Projeto</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[Number(currentAvaliacao.faixa3_nps_projeto ?? 0)]}
+                        onValueChange={([val]) => updateField('faixa3_nps_projeto', val)}
+                        max={100}
+                        step={1}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_nps_projeto ?? 0}</span>
+                    </div>
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Backlog</p>
-                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa3_backlog)}</p>
+                  <div>
+                    <Label className="input-label">Backlog</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[Number(currentAvaliacao.faixa3_backlog ?? 0)]}
+                        onValueChange={([val]) => updateField('faixa3_backlog', val)}
+                        max={100}
+                        step={1}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_backlog ?? 0}</span>
+                    </div>
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Prioridades</p>
-                    <p className="text-xl font-bold text-foreground">{Number(currentAvaliacao.faixa3_prioridades)}%</p>
+                  <div>
+                    <Label className="input-label">Prioridades (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[Number(currentAvaliacao.faixa3_prioridades ?? 0)]}
+                        onValueChange={([val]) => updateField('faixa3_prioridades', val)}
+                        max={100}
+                        step={1}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_prioridades ?? 0}%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="input-label">SLA (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[Number(currentAvaliacao.faixa3_sla ?? 0)]}
+                        onValueChange={([val]) => updateField('faixa3_sla', val)}
+                        max={100}
+                        step={1}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_sla ?? 0}%</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -428,8 +621,22 @@ export default function Registro() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-              Fechar
+              Cancelar
             </Button>
+            {isEditing && (
+              <Button 
+                onClick={handleSalvarAvaliacao} 
+                disabled={updateAvaliacao.isPending}
+                className="gap-2"
+              >
+                {updateAvaliacao.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Salvar
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

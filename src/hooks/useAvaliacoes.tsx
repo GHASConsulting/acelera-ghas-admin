@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 type RegistroGlobal = Tables<'registros_globais'>;
 type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
+type AvaliacaoInsert = TablesInsert<'avaliacoes_mensais'>;
+type AvaliacaoUpdate = TablesUpdate<'avaliacoes_mensais'>;
 
 export function useRegistrosGlobais() {
   return useQuery({
@@ -36,5 +38,46 @@ export function useAvaliacoes(prestadorId?: string) {
       return data as AvaliacaoMensal[];
     },
     enabled: !!prestadorId || prestadorId === undefined,
+  });
+}
+
+export function useCreateAvaliacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (avaliacao: AvaliacaoInsert) => {
+      const { data, error } = await supabase
+        .from('avaliacoes_mensais')
+        .insert(avaliacao)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes', variables.prestador_id] });
+    },
+  });
+}
+
+export function useUpdateAvaliacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...avaliacao }: AvaliacaoUpdate & { id: string }) => {
+      const { data, error } = await supabase
+        .from('avaliacoes_mensais')
+        .update(avaliacao)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes', data.prestador_id] });
+    },
   });
 }
