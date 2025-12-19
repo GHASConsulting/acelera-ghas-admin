@@ -149,12 +149,16 @@ export default function Calculo() {
     }
 
     // FAIXA 1 - Elegibilidade
+    // Ausências: 1 dia = -30%, 2 dias = -70%, 3+ dias = -100%
     let reducaoAusencias = 0;
     if (totalAusencias === 1) reducaoAusencias = 30;
     else if (totalAusencias === 2) reducaoAusencias = 70;
     else if (totalAusencias >= 3) reducaoAusencias = 100;
 
-    const reducaoPendencias = totalPendencias * 10;
+    // Pendências: 1 notificação = -100%, cada pendência adicional = -10%
+    // Se há pelo menos 1 pendência, considera como notificação (100%)
+    const reducaoPendencias = totalPendencias >= 1 ? 100 : 0;
+    
     const elegibilidade_percentual = Math.max(0, 100 - reducaoAusencias - reducaoPendencias);
     const elegivel = elegibilidade_percentual > 0;
 
