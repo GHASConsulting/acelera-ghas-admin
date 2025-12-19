@@ -10,7 +10,7 @@ interface ProtectedGhasRouteProps {
 
 export function ProtectedGhasRoute({ children }: ProtectedGhasRouteProps) {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, isResponsavelGhas, loading: roleLoading } = usePrestadorLogado();
+  const { isResponsavelGhas, loading: roleLoading } = usePrestadorLogado();
 
   if (authLoading || roleLoading) {
     return (
@@ -24,8 +24,8 @@ export function ProtectedGhasRoute({ children }: ProtectedGhasRouteProps) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Admins e Responsáveis GHAS podem acessar
-  if (!isAdmin && !isResponsavelGhas) {
+  // Apenas Responsáveis GHAS podem acessar
+  if (!isResponsavelGhas) {
     return <Navigate to="/" replace />;
   }
 
