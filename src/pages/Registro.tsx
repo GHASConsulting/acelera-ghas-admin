@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { usePrestadores } from '@/hooks/usePrestadores';
 import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao, useDeleteAvaliacao } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
@@ -456,24 +457,40 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">Ausências</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={currentAvaliacao.faixa1_ausencias ?? 0}
-                      onChange={(e) => updateField('faixa1_ausencias', parseInt(e.target.value) || 0)}
+                    <Label className="input-label mb-2 block">Ausências sem acordo prévio</Label>
+                    <RadioGroup
+                      value={String(currentAvaliacao.faixa1_ausencias ?? 0)}
+                      onValueChange={(val) => updateField('faixa1_ausencias', parseInt(val))}
                       disabled={!isEditing}
-                    />
+                      className="flex flex-wrap gap-3"
+                    >
+                      {[0, 1, 2, 3].map((num) => (
+                        <div key={num} className="flex items-center space-x-2">
+                          <RadioGroupItem value={String(num)} id={`ausencias-${num}`} disabled={!isEditing} />
+                          <Label htmlFor={`ausencias-${num}`} className="text-sm cursor-pointer">
+                            {num === 3 ? '3 ou mais' : num}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
                   <div>
-                    <Label className="input-label">Pendências</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={currentAvaliacao.faixa1_pendencias ?? 0}
-                      onChange={(e) => updateField('faixa1_pendencias', parseInt(e.target.value) || 0)}
+                    <Label className="input-label mb-2 block">Pendências administrativas/fiscais</Label>
+                    <RadioGroup
+                      value={String(currentAvaliacao.faixa1_pendencias ?? 0)}
+                      onValueChange={(val) => updateField('faixa1_pendencias', parseInt(val))}
                       disabled={!isEditing}
-                    />
+                      className="flex flex-wrap gap-3"
+                    >
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <div key={num} className="flex items-center space-x-2">
+                          <RadioGroupItem value={String(num)} id={`pendencias-${num}`} disabled={!isEditing} />
+                          <Label htmlFor={`pendencias-${num}`} className="text-sm cursor-pointer">
+                            {num === 10 ? '10 ou mais' : num}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
                 </div>
               </div>
@@ -483,15 +500,15 @@ export default function Registro() {
                 <div className="faixa-header">
                   <span className="faixa-number">2</span>
                   <div>
-                    <h3 className="faixa-title">Produtividade Individual</h3>
-                    <p className="text-sm text-muted-foreground">Peso: 40%</p>
+                    <h3 className="faixa-title">Produtividade Individual (Peso 40%)</h3>
+                    <p className="text-sm text-muted-foreground">Desempenho individual do prestador</p>
                   </div>
                   <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa2(currentAvaliacao)}%</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">Produtividade (%)</Label>
+                    <Label className="input-label">Produtividade (Peso 30%)</Label>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[Number(currentAvaliacao.faixa2_produtividade ?? 0)]}
@@ -505,7 +522,7 @@ export default function Registro() {
                     </div>
                   </div>
                   <div>
-                    <Label className="input-label">Qualidade (%)</Label>
+                    <Label className="input-label">Quantidade de Registros (Peso 30%)</Label>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[Number(currentAvaliacao.faixa2_qualidade ?? 0)]}
@@ -521,63 +538,79 @@ export default function Registro() {
                 </div>
 
                 <div className="mt-4">
-                  <Label className="input-label mb-2 block">Competências-Chave (0 a 1)</Label>
+                  <Label className="input-label mb-2 block">CHAVE GHAS (Peso 40%)</Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Comportamento</Label>
-                      <div className="flex items-center gap-2">
-                        <Slider
-                          value={[Number(currentAvaliacao.faixa2_chave_comportamento ?? 0)]}
-                          onValueChange={([val]) => updateField('faixa2_chave_comportamento', val)}
-                          max={1}
-                          step={0.1}
-                          disabled={!isEditing}
-                          className="flex-1"
-                        />
-                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_comportamento ?? 0).toFixed(1)}</span>
-                      </div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">Comportamento</Label>
+                      <RadioGroup
+                        value={Number(currentAvaliacao.faixa2_chave_comportamento ?? 0) >= 0.5 ? 'sim' : 'nao'}
+                        onValueChange={(val) => updateField('faixa2_chave_comportamento', val === 'sim' ? 1 : 0)}
+                        disabled={!isEditing}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sim" id="comportamento-sim" disabled={!isEditing} />
+                          <Label htmlFor="comportamento-sim" className="text-sm cursor-pointer">Sim</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="nao" id="comportamento-nao" disabled={!isEditing} />
+                          <Label htmlFor="comportamento-nao" className="text-sm cursor-pointer">Não</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Habilidades</Label>
-                      <div className="flex items-center gap-2">
-                        <Slider
-                          value={[Number(currentAvaliacao.faixa2_chave_habilidades ?? 0)]}
-                          onValueChange={([val]) => updateField('faixa2_chave_habilidades', val)}
-                          max={1}
-                          step={0.1}
-                          disabled={!isEditing}
-                          className="flex-1"
-                        />
-                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_habilidades ?? 0).toFixed(1)}</span>
-                      </div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">Habilidades</Label>
+                      <RadioGroup
+                        value={Number(currentAvaliacao.faixa2_chave_habilidades ?? 0) >= 0.5 ? 'sim' : 'nao'}
+                        onValueChange={(val) => updateField('faixa2_chave_habilidades', val === 'sim' ? 1 : 0)}
+                        disabled={!isEditing}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sim" id="habilidades-sim" disabled={!isEditing} />
+                          <Label htmlFor="habilidades-sim" className="text-sm cursor-pointer">Sim</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="nao" id="habilidades-nao" disabled={!isEditing} />
+                          <Label htmlFor="habilidades-nao" className="text-sm cursor-pointer">Não</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Atitudes</Label>
-                      <div className="flex items-center gap-2">
-                        <Slider
-                          value={[Number(currentAvaliacao.faixa2_chave_atitudes ?? 0)]}
-                          onValueChange={([val]) => updateField('faixa2_chave_atitudes', val)}
-                          max={1}
-                          step={0.1}
-                          disabled={!isEditing}
-                          className="flex-1"
-                        />
-                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_atitudes ?? 0).toFixed(1)}</span>
-                      </div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">Atitudes</Label>
+                      <RadioGroup
+                        value={Number(currentAvaliacao.faixa2_chave_atitudes ?? 0) >= 0.5 ? 'sim' : 'nao'}
+                        onValueChange={(val) => updateField('faixa2_chave_atitudes', val === 'sim' ? 1 : 0)}
+                        disabled={!isEditing}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sim" id="atitudes-sim" disabled={!isEditing} />
+                          <Label htmlFor="atitudes-sim" className="text-sm cursor-pointer">Sim</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="nao" id="atitudes-nao" disabled={!isEditing} />
+                          <Label htmlFor="atitudes-nao" className="text-sm cursor-pointer">Não</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Valores</Label>
-                      <div className="flex items-center gap-2">
-                        <Slider
-                          value={[Number(currentAvaliacao.faixa2_chave_valores ?? 0)]}
-                          onValueChange={([val]) => updateField('faixa2_chave_valores', val)}
-                          max={1}
-                          step={0.1}
-                          disabled={!isEditing}
-                          className="flex-1"
-                        />
-                        <span className="w-8 text-right text-sm">{Number(currentAvaliacao.faixa2_chave_valores ?? 0).toFixed(1)}</span>
-                      </div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">Valores</Label>
+                      <RadioGroup
+                        value={Number(currentAvaliacao.faixa2_chave_valores ?? 0) >= 0.5 ? 'sim' : 'nao'}
+                        onValueChange={(val) => updateField('faixa2_chave_valores', val === 'sim' ? 1 : 0)}
+                        disabled={!isEditing}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sim" id="valores-sim" disabled={!isEditing} />
+                          <Label htmlFor="valores-sim" className="text-sm cursor-pointer">Sim</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="nao" id="valores-nao" disabled={!isEditing} />
+                          <Label htmlFor="valores-nao" className="text-sm cursor-pointer">Não</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                   </div>
                 </div>
@@ -588,15 +621,15 @@ export default function Registro() {
                 <div className="faixa-header">
                   <span className="faixa-number">3</span>
                   <div>
-                    <h3 className="faixa-title">Resultado com Cliente e Time</h3>
-                    <p className="text-sm text-muted-foreground">Peso: 30%</p>
+                    <h3 className="faixa-title">Resultado com Cliente e Time (Peso 30%)</h3>
+                    <p className="text-sm text-muted-foreground">Desempenho com cliente e equipe</p>
                   </div>
                   <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa3(currentAvaliacao)}%</p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">NPS Projeto</Label>
+                    <Label className="input-label">NPS do Projeto (Peso 40%)</Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_nps_projeto ?? 0)]}
@@ -610,7 +643,7 @@ export default function Registro() {
                     </div>
                   </div>
                   <div>
-                    <Label className="input-label">Backlog</Label>
+                    <Label className="input-label">Backlog (Peso 30%)</Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_backlog ?? 0)]}
@@ -624,7 +657,7 @@ export default function Registro() {
                     </div>
                   </div>
                   <div>
-                    <Label className="input-label">Prioridades (%)</Label>
+                    <Label className="input-label">Prioridades em Dia (Peso 30%)</Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_prioridades ?? 0)]}
@@ -637,8 +670,11 @@ export default function Registro() {
                       <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_prioridades ?? 0}%</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">SLA (%)</Label>
+                    <Label className="input-label">% de SLA Primeiro Atendimento (Peso 0%)</Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_sla ?? 0)]}
@@ -654,7 +690,7 @@ export default function Registro() {
                 </div>
               </div>
 
-              {/* Faixa 4 - Resultado Global (somente leitura) */}
+              {/* Faixa 4 - Resultado Empresa (somente leitura) */}
               {(() => {
                 const registroGlobal = getRegistroGlobal(currentAvaliacao.mes || '');
                 return (
@@ -662,8 +698,8 @@ export default function Registro() {
                     <div className="faixa-header">
                       <span className="faixa-number">4</span>
                       <div>
-                        <h3 className="faixa-title">Resultado Global</h3>
-                        <p className="text-sm text-muted-foreground">Peso: 30%</p>
+                        <h3 className="faixa-title">Resultado Empresa (Peso 30%)</h3>
+                        <p className="text-sm text-muted-foreground">Indicadores globais da empresa</p>
                       </div>
                       <TooltipProvider>
                         <Tooltip>
@@ -684,19 +720,19 @@ export default function Registro() {
                       <div className="grid grid-cols-3 gap-6 mt-4">
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            Uso AVA (%)
+                            NPS Global GHAS (Peso 40%)
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
                           <Input
                             type="number"
-                            value={registroGlobal.faixa4_uso_ava}
+                            value={registroGlobal.faixa4_nps_global}
                             disabled
                             className="bg-muted"
                           />
                         </div>
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            Churn (%)
+                            Churn (Peso 30%)
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
                           <Input
@@ -708,12 +744,12 @@ export default function Registro() {
                         </div>
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            NPS Global
+                            Uso da AVA (Peso 30%)
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
                           <Input
                             type="number"
-                            value={registroGlobal.faixa4_nps_global}
+                            value={registroGlobal.faixa4_uso_ava}
                             disabled
                             className="bg-muted"
                           />
