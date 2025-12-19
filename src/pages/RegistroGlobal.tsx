@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Globe, Info, Loader2 } from 'lucide-react';
+import { Plus, Globe, Info, Loader2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Tooltip,
@@ -19,6 +19,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,7 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal } from '@/hooks/useAvaliacoes';
+import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal, useDeleteRegistroGlobal } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
@@ -53,8 +63,10 @@ export default function RegistroGlobalPage() {
   const { prestador, isResponsavelGhas, isAdmin, loading: loadingUser } = usePrestadorLogado();
   const createRegistro = useCreateRegistroGlobal();
   const updateRegistro = useUpdateRegistroGlobal();
+  const deleteRegistro = useDeleteRegistroGlobal();
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentRegistro, setCurrentRegistro] = useState<RegistroGlobal | null>(null);
   const [newMes, setNewMes] = useState<string>('');
   const { toast } = useToast();
@@ -155,6 +167,27 @@ export default function RegistroGlobalPage() {
   const updateField = (field: keyof RegistroGlobal, value: number) => {
     if (!currentRegistro) return;
     setCurrentRegistro({ ...currentRegistro, [field]: value });
+  };
+
+  const handleDeleteRegistro = async () => {
+    if (!currentRegistro) return;
+
+    try {
+      await deleteRegistro.mutateAsync(currentRegistro.id);
+      toast({
+        title: 'Registro excluído',
+        description: `Registro global de ${currentRegistro.mes} foi excluído com sucesso.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setIsFormOpen(false);
+      setCurrentRegistro(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message || 'Ocorreu um erro ao excluir o registro.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (loadingUser || isLoading) {
@@ -429,14 +462,46 @@ export default function RegistroGlobalPage() {
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-              Cancelar
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir
             </Button>
-            <Button onClick={handleSalvarRegistro}>Salvar Indicadores</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSalvarRegistro}>Salvar Indicadores</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog Confirmar Exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o registro global de <strong>{currentRegistro?.mes}</strong>? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteRegistro}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

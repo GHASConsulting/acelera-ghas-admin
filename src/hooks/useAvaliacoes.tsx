@@ -124,3 +124,40 @@ export function useUpdateAvaliacao() {
     },
   });
 }
+
+export function useDeleteAvaliacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, prestador_id }: { id: string; prestador_id: string }) => {
+      const { error } = await supabase
+        .from('avaliacoes_mensais')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { prestador_id };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes', data.prestador_id] });
+    },
+  });
+}
+
+export function useDeleteRegistroGlobal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('registros_globais')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registros_globais'] });
+    },
+  });
+}
