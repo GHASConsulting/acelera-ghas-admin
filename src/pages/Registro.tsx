@@ -309,7 +309,31 @@ export default function Registro() {
   };
 
   const calcularElegibilidade = (avaliacao: Partial<AvaliacaoMensal>) => {
-    return (avaliacao.faixa1_ausencias ?? 0) === 0 && (avaliacao.faixa1_pendencias ?? 0) === 0;
+    const ausencias = avaliacao.faixa1_ausencias ?? 0;
+    const pendencias = avaliacao.faixa1_pendencias ?? 0;
+    
+    // Ausências: 3+ dias = inelegível (100% redução)
+    // Pendências: 1+ = inelegível (100% redução)
+    const inelegivelPorAusencias = ausencias >= 3;
+    const inelegivelPorPendencias = pendencias >= 1;
+    
+    return !inelegivelPorAusencias && !inelegivelPorPendencias;
+  };
+
+  const calcularReducaoElegibilidade = (avaliacao: Partial<AvaliacaoMensal>) => {
+    const ausencias = avaliacao.faixa1_ausencias ?? 0;
+    const pendencias = avaliacao.faixa1_pendencias ?? 0;
+    
+    // Ausências: 1 dia = -30%, 2 dias = -70%, 3+ dias = -100%
+    let reducaoAusencias = 0;
+    if (ausencias === 1) reducaoAusencias = 30;
+    else if (ausencias === 2) reducaoAusencias = 70;
+    else if (ausencias >= 3) reducaoAusencias = 100;
+    
+    // Pendências: 1+ = -100%
+    const reducaoPendencias = pendencias >= 1 ? 100 : 0;
+    
+    return Math.min(100, reducaoAusencias + reducaoPendencias);
   };
 
   const calcularScoreFaixa2 = (avaliacao: Partial<AvaliacaoMensal>) => {
@@ -456,7 +480,9 @@ export default function Registro() {
                             <Badge
                               variant={calcularElegibilidade(avaliacao) ? 'success' : 'destructive'}
                             >
-                              {calcularElegibilidade(avaliacao) ? 'Elegível' : 'Inelegível'}
+                              {calcularElegibilidade(avaliacao) 
+                                ? `Elegível${calcularReducaoElegibilidade(avaliacao) > 0 ? ` (-${calcularReducaoElegibilidade(avaliacao)}%)` : ''}`
+                                : 'Inelegível'}
                             </Badge>
                           </div>
                           <div className="text-center">
@@ -550,7 +576,10 @@ export default function Registro() {
                     className="ml-auto"
                   >
                     {calcularElegibilidade(currentAvaliacao) ? (
-                      <><CheckCircle2 className="w-3 h-3 mr-1" /> Elegível</>
+                      <>
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> 
+                        Elegível{calcularReducaoElegibilidade(currentAvaliacao) > 0 ? ` (-${calcularReducaoElegibilidade(currentAvaliacao)}%)` : ''}
+                      </>
                     ) : (
                       <><AlertCircle className="w-3 h-3 mr-1" /> Inelegível</>
                     )}
