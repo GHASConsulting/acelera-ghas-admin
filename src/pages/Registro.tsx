@@ -78,10 +78,12 @@ const InfoTooltip = ({ content }: { content: React.ReactNode }) => (
       </button>
     </HoverCardTrigger>
     <HoverCardContent 
-      className="w-80 p-4 text-sm" 
-      side="right" 
-      align="start"
+      className="w-72 max-w-[90vw] p-4 text-sm z-[100]" 
+      side="left" 
+      align="center"
       sideOffset={8}
+      collisionPadding={16}
+      avoidCollisions={true}
     >
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-primary font-medium">
