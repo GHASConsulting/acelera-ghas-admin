@@ -616,6 +616,83 @@ export default function Registro() {
                   </div>
                 </div>
               </div>
+
+              {/* Faixa 4 - Resultado Global (somente leitura) */}
+              {(() => {
+                const registroGlobal = getRegistroGlobal(currentAvaliacao.mes || '');
+                return (
+                  <div className="faixa-card">
+                    <div className="faixa-header">
+                      <span className="faixa-number">4</span>
+                      <div>
+                        <h3 className="faixa-title">Resultado Global</h3>
+                        <p className="text-sm text-muted-foreground">Peso: 30%</p>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="ml-auto flex items-center gap-2 text-muted-foreground">
+                              <Lock className="w-4 h-4" />
+                              <span className="text-xs">Somente leitura</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Dados importados do Registro Global</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    {registroGlobal ? (
+                      <div className="grid grid-cols-3 gap-6 mt-4">
+                        <div>
+                          <Label className="input-label flex items-center gap-2">
+                            Uso AVA (%)
+                            <Lock className="w-3 h-3 text-muted-foreground" />
+                          </Label>
+                          <Input
+                            type="number"
+                            value={registroGlobal.faixa4_uso_ava}
+                            disabled
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div>
+                          <Label className="input-label flex items-center gap-2">
+                            Churn (%)
+                            <Lock className="w-3 h-3 text-muted-foreground" />
+                          </Label>
+                          <Input
+                            type="number"
+                            value={registroGlobal.faixa4_churn}
+                            disabled
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div>
+                          <Label className="input-label flex items-center gap-2">
+                            NPS Global
+                            <Lock className="w-3 h-3 text-muted-foreground" />
+                          </Label>
+                          <Input
+                            type="number"
+                            value={registroGlobal.faixa4_nps_global}
+                            disabled
+                            className="bg-muted"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 p-4 bg-warning/10 rounded-lg border border-warning/20">
+                        <p className="text-sm text-warning flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          Registro global não encontrado para {currentAvaliacao.mes}. Cadastre os dados na aba "Registro Global".
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
