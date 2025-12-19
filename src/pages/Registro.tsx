@@ -68,7 +68,7 @@ const MESES_AVALIACAO = [
 ];
 
 // Componente de tooltip de informação usando HoverCard para melhor visualização
-const InfoTooltip = ({ content }: { content: React.ReactNode }) => (
+const InfoTooltip = ({ content, preferSide = "top" }: { content: React.ReactNode; preferSide?: "top" | "bottom" | "left" | "right" }) => (
   <HoverCard openDelay={100} closeDelay={100}>
     <HoverCardTrigger asChild>
       <button type="button" className="inline-flex items-center justify-center ml-1.5 focus:outline-none">
@@ -78,12 +78,11 @@ const InfoTooltip = ({ content }: { content: React.ReactNode }) => (
       </button>
     </HoverCardTrigger>
     <HoverCardContent 
-      className="w-72 max-w-[90vw] p-4 text-sm z-[100]" 
-      side="left" 
+      className="w-72 max-w-[85vw] p-4 text-sm z-[100]" 
+      side={preferSide}
       align="center"
       sideOffset={8}
-      collisionPadding={16}
-      avoidCollisions={true}
+      collisionPadding={20}
     >
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-primary font-medium">
