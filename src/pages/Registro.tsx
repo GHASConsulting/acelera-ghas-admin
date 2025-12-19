@@ -62,6 +62,88 @@ const MESES_AVALIACAO = [
   'Dezembro/2026',
 ];
 
+// Componente de tooltip de informação
+const InfoTooltip = ({ content }: { content: React.ReactNode }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="w-4 h-4 text-muted-foreground cursor-help inline-block ml-1" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm text-left whitespace-pre-line">
+        {content}
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+// Textos de ajuda para cada campo
+const TOOLTIPS = {
+  ausencias: `• 1 dia de Ausência: reduz 30% do valor total
+• 2 dias (consecutivos ou não): reduz 70% do valor total
+• 3 dias ou mais: reduz 100% do valor total
+
+Não é considerada Ausência:
+• Ausências acordadas com 60 dias de antecedência
+• Ausência acordada com 7 dias por motivos de saúde
+• Ausência por urgência de saúde
+
+É considerada Ausência:
+• Não presença física em clientes (agenda presencial)
+• Ausência sem justificativa prévia em reuniões`,
+  
+  pendencias: `• 1 Notificação: reduz 100% do valor total
+• Cada pendência: reduz 10% no pagamento total
+
+Pendências administrativas:
+• Não registro do RAT (relatório semanal)
+• Não registro do Diário GHAS
+• Não entrega de NF até 2 dias úteis após faturamento
+• Falta de assinatura de contratos/aditivos
+• Falta de assinatura de documentos GHAS
+• Não entrega de Gestão de Viagens (15 dias para ônibus, 30 dias para avião)`,
+  
+  produtividade: `Metas mínimas:
+• N1: 120 chamados
+• N2: 60 chamados
+• Especialista: 60 chamados
+
+Obs.: Se não atingir a meta mínima, deve:
+(a) Possuir backlog ≤ 3 chamados ao fim do mês, ou
+(b) Todas as atividades de cronogramas/prioridades entregues em dia`,
+  
+  qualidade: `Avaliação por amostragem mínima de 6 chamados mensais.
+
+Critérios de qualidade:
+• Registro completo da análise da demanda
+• Registro dos prazos e escopo acordados
+• Registro em português claro e correto
+• Registro da solução oferecida ao cliente
+• Registro das alterações realizadas
+• Registro da validação e aceite do encerramento`,
+  
+  chave: `Avaliação mensal do Prestador Líder sobre diretrizes da CHAVE GHAS:
+
+• Comportamento conforme CHAVE GHAS?
+• Habilidades conforme CHAVE GHAS?
+• Atitudes conforme CHAVE GHAS?
+• Alinhamento com os Valores conforme CHAVE GHAS?`,
+  
+  nps_projeto: `NPS do cliente deve estar com score mensal igual ou superior a 75.`,
+  
+  sla: `90% dos chamados abertos devem ter primeiro atendimento em até 1 hora.`,
+  
+  prioridades: `95% ou mais das atividades devem estar sem atraso ao fim do mês.`,
+  
+  backlog: `• Garantir que o mês não encerrou com backlog acima de 15% do total de chamados abertos
+• Garantir que não haja chamados abertos a mais de 90 dias fora da Lista de prioridades com cronograma pré-determinado`,
+  
+  nps_global: `NPS Mensal da GHAS deve estar com score mensal igual ou superior a 75.`,
+  
+  churn: `O Churn da GHAS foi igual ou superior a 1?`,
+  
+  uso_ava: `Percentual de uso da AVA pelos prestadores.`,
+};
+
 export default function Registro() {
   const { data: prestadores = [], isLoading: loadingPrestadores } = usePrestadores();
   const { data: registrosGlobais = [] } = useRegistrosGlobais();
@@ -457,7 +539,10 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label mb-2 block">Ausências sem acordo prévio</Label>
+                    <Label className="input-label mb-2 flex items-center">
+                      Ausências sem acordo prévio
+                      <InfoTooltip content={TOOLTIPS.ausencias} />
+                    </Label>
                     <RadioGroup
                       value={String(currentAvaliacao.faixa1_ausencias ?? 0)}
                       onValueChange={(val) => updateField('faixa1_ausencias', parseInt(val))}
@@ -475,7 +560,10 @@ export default function Registro() {
                     </RadioGroup>
                   </div>
                   <div>
-                    <Label className="input-label mb-2 block">Pendências administrativas/fiscais</Label>
+                    <Label className="input-label mb-2 flex items-center">
+                      Pendências administrativas/fiscais
+                      <InfoTooltip content={TOOLTIPS.pendencias} />
+                    </Label>
                     <RadioGroup
                       value={String(currentAvaliacao.faixa1_pendencias ?? 0)}
                       onValueChange={(val) => updateField('faixa1_pendencias', parseInt(val))}
@@ -508,7 +596,7 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">Produtividade (Peso 30%)</Label>
+                    <Label className="input-label flex items-center">Produtividade (Peso 30%)<InfoTooltip content={TOOLTIPS.produtividade} /></Label>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[Number(currentAvaliacao.faixa2_produtividade ?? 0)]}
@@ -522,7 +610,7 @@ export default function Registro() {
                     </div>
                   </div>
                   <div>
-                    <Label className="input-label">Quantidade de Registros (Peso 30%)</Label>
+                    <Label className="input-label flex items-center">Quantidade de Registros (Peso 30%)<InfoTooltip content={TOOLTIPS.qualidade} /></Label>
                     <div className="flex items-center gap-4">
                       <Slider
                         value={[Number(currentAvaliacao.faixa2_qualidade ?? 0)]}
@@ -538,7 +626,7 @@ export default function Registro() {
                 </div>
 
                 <div className="mt-4">
-                  <Label className="input-label mb-2 block">CHAVE GHAS (Peso 40%)</Label>
+                  <Label className="input-label mb-2 flex items-center">CHAVE GHAS (Peso 40%)<InfoTooltip content={TOOLTIPS.chave} /></Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <Label className="text-xs text-muted-foreground mb-2 block">Comportamento</Label>
@@ -629,7 +717,7 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">NPS do Projeto (Peso 40%)</Label>
+                    <Label className="input-label flex items-center">NPS do Projeto (Peso 40%)<InfoTooltip content={TOOLTIPS.nps_projeto} /></Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_nps_projeto ?? 0)]}
@@ -643,7 +731,7 @@ export default function Registro() {
                     </div>
                   </div>
                   <div>
-                    <Label className="input-label">Backlog (Peso 30%)</Label>
+                    <Label className="input-label flex items-center">Backlog (Peso 30%)<InfoTooltip content={TOOLTIPS.backlog} /></Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_backlog ?? 0)]}
@@ -657,7 +745,7 @@ export default function Registro() {
                     </div>
                   </div>
                   <div>
-                    <Label className="input-label">Prioridades em Dia (Peso 30%)</Label>
+                    <Label className="input-label flex items-center">Prioridades em Dia (Peso 30%)<InfoTooltip content={TOOLTIPS.prioridades} /></Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_prioridades ?? 0)]}
@@ -674,7 +762,7 @@ export default function Registro() {
 
                 <div className="grid grid-cols-1 gap-6 mt-4">
                   <div>
-                    <Label className="input-label">% de SLA Primeiro Atendimento (Peso 0%)</Label>
+                    <Label className="input-label flex items-center">% de SLA Primeiro Atendimento (Peso 0%)<InfoTooltip content={TOOLTIPS.sla} /></Label>
                     <div className="flex items-center gap-2">
                       <Slider
                         value={[Number(currentAvaliacao.faixa3_sla ?? 0)]}
@@ -721,6 +809,7 @@ export default function Registro() {
                         <div>
                           <Label className="input-label flex items-center gap-2">
                             NPS Global GHAS (Peso 40%)
+                            <InfoTooltip content={TOOLTIPS.nps_global} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
                           <Input
@@ -733,6 +822,7 @@ export default function Registro() {
                         <div>
                           <Label className="input-label flex items-center gap-2">
                             Churn (Peso 30%)
+                            <InfoTooltip content={TOOLTIPS.churn} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
                           <Input
@@ -745,6 +835,7 @@ export default function Registro() {
                         <div>
                           <Label className="input-label flex items-center gap-2">
                             Uso da AVA (Peso 30%)
+                            <InfoTooltip content={TOOLTIPS.uso_ava} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
                           <Input
