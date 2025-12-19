@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 type RegistroGlobal = Tables<'registros_globais'>;
+type RegistroGlobalInsert = TablesInsert<'registros_globais'>;
+type RegistroGlobalUpdate = TablesUpdate<'registros_globais'>;
 type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
 type AvaliacaoInsert = TablesInsert<'avaliacoes_mensais'>;
 type AvaliacaoUpdate = TablesUpdate<'avaliacoes_mensais'>;
@@ -18,6 +20,47 @@ export function useRegistrosGlobais() {
 
       if (error) throw error;
       return data as RegistroGlobal[];
+    },
+  });
+}
+
+export function useCreateRegistroGlobal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (registro: RegistroGlobalInsert) => {
+      const { data, error } = await supabase
+        .from('registros_globais')
+        .insert(registro)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registros_globais'] });
+    },
+  });
+}
+
+export function useUpdateRegistroGlobal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...registro }: RegistroGlobalUpdate & { id: string }) => {
+      const { data, error } = await supabase
+        .from('registros_globais')
+        .update(registro)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registros_globais'] });
     },
   });
 }

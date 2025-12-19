@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { useRegistrosGlobais } from '@/hooks/useAvaliacoes';
+import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +51,8 @@ const MESES_AVALIACAO = [
 export default function RegistroGlobalPage() {
   const { data: registros = [], isLoading } = useRegistrosGlobais();
   const { prestador, isResponsavelGhas, isAdmin, loading: loadingUser } = usePrestadorLogado();
+  const createRegistro = useCreateRegistroGlobal();
+  const updateRegistro = useUpdateRegistroGlobal();
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentRegistro, setCurrentRegistro] = useState<RegistroGlobal | null>(null);
@@ -76,7 +78,7 @@ export default function RegistroGlobalPage() {
   // Meses disponíveis para novo registro
   const mesesDisponiveis = MESES_AVALIACAO.filter((m) => !mesesRegistrados.includes(m));
 
-  const handleCriarRegistro = () => {
+  const handleCriarRegistro = async () => {
     if (!newMes) {
       toast({
         title: 'Campo obrigatório',
@@ -86,13 +88,37 @@ export default function RegistroGlobalPage() {
       return;
     }
 
-    // Por enquanto, apenas simular criação local
-    toast({
-      title: 'Funcionalidade em desenvolvimento',
-      description: 'A criação de registros globais será implementada em breve.',
-    });
-    setIsNewDialogOpen(false);
-    setNewMes('');
+    if (!prestador) {
+      toast({
+        title: 'Erro',
+        description: 'Usuário não identificado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await createRegistro.mutateAsync({
+        mes: newMes,
+        registrado_por_id: prestador.id,
+        faixa4_nps_global: 0,
+        faixa4_churn: 0,
+        faixa4_uso_ava: 0,
+      });
+
+      toast({
+        title: 'Registro criado',
+        description: `Registro global para ${newMes} foi criado com sucesso.`,
+      });
+      setIsNewDialogOpen(false);
+      setNewMes('');
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao criar registro',
+        description: error.message || 'Ocorreu um erro ao criar o registro.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleEditarRegistro = (registro: RegistroGlobal) => {
@@ -100,16 +126,30 @@ export default function RegistroGlobalPage() {
     setIsFormOpen(true);
   };
 
-  const handleSalvarRegistro = () => {
+  const handleSalvarRegistro = async () => {
     if (!currentRegistro) return;
 
-    toast({
-      title: 'Funcionalidade em desenvolvimento',
-      description: 'A edição de registros globais será implementada em breve.',
-    });
+    try {
+      await updateRegistro.mutateAsync({
+        id: currentRegistro.id,
+        faixa4_nps_global: currentRegistro.faixa4_nps_global,
+        faixa4_churn: currentRegistro.faixa4_churn,
+        faixa4_uso_ava: currentRegistro.faixa4_uso_ava,
+      });
 
-    setIsFormOpen(false);
-    setCurrentRegistro(null);
+      toast({
+        title: 'Registro salvo',
+        description: 'Indicadores globais foram atualizados com sucesso.',
+      });
+      setIsFormOpen(false);
+      setCurrentRegistro(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message || 'Ocorreu um erro ao salvar o registro.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const updateField = (field: keyof RegistroGlobal, value: number) => {

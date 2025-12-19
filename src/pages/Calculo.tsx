@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePrestadores } from '@/hooks/usePrestadores';
-import { useAvaliacoes } from '@/hooks/useAvaliacoes';
+import { useAvaliacoes, useRegistrosGlobais } from '@/hooks/useAvaliacoes';
+import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
 import { Progress } from '@/components/ui/progress';
 
@@ -71,11 +72,33 @@ export default function Calculo() {
   const [selectedPeriodo, setSelectedPeriodo] = useState<Periodo>('mensal');
   const [selectedMes, setSelectedMes] = useState<MesAvaliacao | ''>('');
 
+  const { prestador: prestadorLogado, isAdmin, isAvaliador, loading: loadingUser } = usePrestadorLogado();
   const { data: prestadores = [], isLoading: loadingPrestadores } = usePrestadores();
   const { data: avaliacoes = [], isLoading: loadingAvaliacoes } = useAvaliacoes(selectedPrestador || undefined);
+  const { data: registrosGlobais = [] } = useRegistrosGlobais();
 
-  const prestadoresAtivos = prestadores.filter((p) => p.situacao === 'ativo');
-  const prestadorSelecionado = prestadoresAtivos.find((p) => p.id === selectedPrestador);
+  // Filtrar prestadores com base no papel do usuário
+  const prestadoresFiltrados = useMemo(() => {
+    const ativos = prestadores.filter((p) => p.situacao === 'ativo');
+    
+    if (isAdmin) {
+      return ativos;
+    }
+    
+    if (isAvaliador && prestadorLogado) {
+      // Avaliador vê apenas seus avaliados
+      return ativos.filter((p) => p.avaliador_id === prestadorLogado.id);
+    }
+    
+    if (prestadorLogado) {
+      // Prestador comum vê apenas ele mesmo
+      return ativos.filter((p) => p.id === prestadorLogado.id);
+    }
+    
+    return [];
+  }, [prestadores, isAdmin, isAvaliador, prestadorLogado]);
+
+  const prestadorSelecionado = prestadoresFiltrados.find((p) => p.id === selectedPrestador);
 
   // Avaliações do prestador selecionado
   const avaliacoesPrestador = avaliacoes;
@@ -111,9 +134,19 @@ export default function Calculo() {
     const avgBacklog = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_backlog), 0) / avaliacoesFiltradas.length;
     const avgPrioridades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_prioridades), 0) / avaliacoesFiltradas.length;
 
-    const avgNpsGlobal = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa4_nps_global), 0) / avaliacoesFiltradas.length;
-    const avgChurn = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa4_churn), 0) / avaliacoesFiltradas.length;
-    const avgUsoAva = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa4_uso_ava), 0) / avaliacoesFiltradas.length;
+    // Usar dados da tabela registros_globais para Faixa 4
+    const mesesDoFiltro = avaliacoesFiltradas.map(a => a.mes);
+    const registrosGlobaisFiltrados = registrosGlobais.filter(r => mesesDoFiltro.includes(r.mes));
+    
+    let avgNpsGlobal = 0;
+    let avgChurn = 0;
+    let avgUsoAva = 0;
+    
+    if (registrosGlobaisFiltrados.length > 0) {
+      avgNpsGlobal = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_nps_global), 0) / registrosGlobaisFiltrados.length;
+      avgChurn = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_churn), 0) / registrosGlobaisFiltrados.length;
+      avgUsoAva = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_uso_ava), 0) / registrosGlobaisFiltrados.length;
+    }
 
     // FAIXA 1 - Elegibilidade
     let reducaoAusencias = 0;
@@ -193,7 +226,7 @@ export default function Calculo() {
           uso_ava: avgUsoAva,
         },
       },
-    };
+    } as ResultadoCalculo;
   }, [avaliacoesFiltradas, prestadorSelecionado]);
 
   const formatCurrency = (value: number) => {
@@ -207,7 +240,7 @@ export default function Calculo() {
     return `${value.toFixed(1)}%`;
   };
 
-  if (loadingPrestadores) {
+  if (loadingPrestadores || loadingUser) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-96">
@@ -247,8 +280,8 @@ export default function Calculo() {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um prestador..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    {prestadoresAtivos.map((prestador) => (
+                <SelectContent>
+                    {prestadoresFiltrados.map((prestador) => (
                       <SelectItem key={prestador.id} value={prestador.id}>
                         {prestador.nome}
                       </SelectItem>
