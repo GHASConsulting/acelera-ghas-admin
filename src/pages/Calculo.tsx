@@ -25,11 +25,10 @@ type StatusCalculo = 'em_aberto' | 'simulado' | 'fechado';
 
 interface ResultadoCalculo {
   elegivel: boolean;
-  elegibilidade_percentual: number;
-  score_faixa2: number;
-  score_faixa3: number;
-  multiplicador_faixa4: number;
-  premio_percentual: number;
+  premio_maximo: number;
+  valor_faixa2: number;
+  valor_faixa3: number;
+  valor_faixa4: number;
   premio_valor: number;
   salario_base: number;
   status: StatusCalculo;
@@ -37,24 +36,29 @@ interface ResultadoCalculo {
     faixa1: {
       ausencias: number;
       pendencias: number;
-      reducao_ausencias: number;
-      reducao_pendencias: number;
+      notificacoes: number;
     };
     faixa2: {
-      produtividade: number;
-      qualidade: number;
-      chave_media: number;
+      produtividade: boolean;
+      qualidade: boolean;
+      comportamento: boolean;
+      habilidades: boolean;
+      atitudes: boolean;
+      valores: boolean;
+      percentual: number;
     };
     faixa3: {
-      nps_projeto: number;
-      backlog: number;
-      prioridades: number;
-      atingiu_minimo: boolean;
+      nps_projeto: boolean;
+      backlog: boolean;
+      prioridades: boolean;
+      sla: boolean;
+      percentual: number;
     };
     faixa4: {
-      nps_global: number;
-      churn: number;
-      uso_ava: number;
+      nps_global: boolean;
+      churn: boolean;
+      uso_ava: boolean;
+      percentual: number;
     };
   };
 }
@@ -119,10 +123,27 @@ export default function Calculo() {
   const resultado = useMemo((): ResultadoCalculo | null => {
     if (avaliacoesFiltradas.length === 0 || !prestadorSelecionado) return null;
 
-    // Agregar dados (média para semestral)
+    const salario_base = Number(prestadorSelecionado.salario_fixo);
+    
+    // Passo 1 - Prêmio Máximo: 80% do salário
+    const premio_maximo = salario_base * 0.8;
+
+    // Passo 2 - Distribuição por Faixa
+    const faixa2_max = premio_maximo * 0.4; // 40%
+    const faixa3_max = premio_maximo * 0.4; // 40%
+    const faixa4_max = premio_maximo * 0.2; // 20%
+
+    // Agregar dados (para semestral usa média, valores são binários 0 ou 1)
     const totalAusencias = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_ausencias, 0);
     const totalPendencias = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_pendencias, 0);
+    const totalNotificacoes = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_notificacoes, 0);
 
+    // FAIXA 1 - Elegibilidade (não gera valor, apenas verifica)
+    // Ausências >= 3 ou Pendências >= 1 ou Notificações >= 1 = inelegível
+    const elegivel = totalAusencias < 3 && totalPendencias === 0 && totalNotificacoes === 0;
+
+    // FAIXA 2 - Produtividade Individual (valores binários)
+    // Para semestral: considera "Sim" se a média >= 0.5 (maioria dos meses foi Sim)
     const avgProdutividade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_produtividade), 0) / avaliacoesFiltradas.length;
     const avgQualidade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_qualidade), 0) / avaliacoesFiltradas.length;
     const avgChaveComportamento = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_comportamento), 0) / avaliacoesFiltradas.length;
@@ -130,108 +151,109 @@ export default function Calculo() {
     const avgChaveAtitudes = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_atitudes), 0) / avaliacoesFiltradas.length;
     const avgChaveValores = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_valores), 0) / avaliacoesFiltradas.length;
 
+    const produtividade_sim = avgProdutividade >= 0.5;
+    const qualidade_sim = avgQualidade >= 0.5;
+    const comportamento_sim = avgChaveComportamento >= 0.5;
+    const habilidades_sim = avgChaveHabilidades >= 0.5;
+    const atitudes_sim = avgChaveAtitudes >= 0.5;
+    const valores_sim = avgChaveValores >= 0.5;
+
+    const percentual_faixa2 = 
+      (produtividade_sim ? 0.30 : 0) +
+      (qualidade_sim ? 0.30 : 0) +
+      (comportamento_sim ? 0.10 : 0) +
+      (habilidades_sim ? 0.10 : 0) +
+      (atitudes_sim ? 0.10 : 0) +
+      (valores_sim ? 0.10 : 0);
+
+    // FAIXA 3 - Resultado Cliente/Projeto (valores binários)
     const avgNpsProjeto = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_nps_projeto), 0) / avaliacoesFiltradas.length;
     const avgBacklog = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_backlog), 0) / avaliacoesFiltradas.length;
     const avgPrioridades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_prioridades), 0) / avaliacoesFiltradas.length;
+    const avgSla = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_sla), 0) / avaliacoesFiltradas.length;
 
-    // Usar dados da tabela registros_globais para Faixa 4
+    const nps_projeto_sim = avgNpsProjeto >= 0.5;
+    const backlog_sim = avgBacklog >= 0.5;
+    const prioridades_sim = avgPrioridades >= 0.5;
+    const sla_sim = avgSla >= 0.5;
+
+    const percentual_faixa3 = 
+      (nps_projeto_sim ? 0.40 : 0) +
+      (prioridades_sim ? 0.30 : 0) +
+      (backlog_sim ? 0.30 : 0);
+    // SLA é informativo (0%)
+
+    // FAIXA 4 - Resultado Empresa (dados da tabela registros_globais)
     const mesesDoFiltro = avaliacoesFiltradas.map(a => a.mes);
     const registrosGlobaisFiltrados = registrosGlobais.filter(r => mesesDoFiltro.includes(r.mes));
     
-    let avgNpsGlobal = 0;
-    let avgChurn = 0;
-    let avgUsoAva = 0;
+    let nps_global_sim = false;
+    let churn_sim = false;
+    let uso_ava_sim = false;
     
     if (registrosGlobaisFiltrados.length > 0) {
-      avgNpsGlobal = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_nps_global), 0) / registrosGlobaisFiltrados.length;
-      avgChurn = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_churn), 0) / registrosGlobaisFiltrados.length;
-      avgUsoAva = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_uso_ava), 0) / registrosGlobaisFiltrados.length;
+      const avgNpsGlobal = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_nps_global), 0) / registrosGlobaisFiltrados.length;
+      const avgChurn = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_churn), 0) / registrosGlobaisFiltrados.length;
+      const avgUsoAva = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_uso_ava), 0) / registrosGlobaisFiltrados.length;
+      
+      nps_global_sim = avgNpsGlobal >= 0.5;
+      churn_sim = avgChurn >= 0.5;
+      uso_ava_sim = avgUsoAva >= 0.5;
     }
 
-    // FAIXA 1 - Elegibilidade
-    // Ausências: 1 dia = -30%, 2 dias = -70%, 3+ dias = -100%
-    let reducaoAusencias = 0;
-    if (totalAusencias === 1) reducaoAusencias = 30;
-    else if (totalAusencias === 2) reducaoAusencias = 70;
-    else if (totalAusencias >= 3) reducaoAusencias = 100;
+    const percentual_faixa4 = 
+      (nps_global_sim ? 0.40 : 0) +
+      (churn_sim ? 0.30 : 0) +
+      (uso_ava_sim ? 0.30 : 0);
 
-    // Pendências: 1 notificação = -100%, cada pendência adicional = -10%
-    // Se há pelo menos 1 pendência, considera como notificação (100%)
-    const reducaoPendencias = totalPendencias >= 1 ? 100 : 0;
-    
-    const elegibilidade_percentual = Math.max(0, 100 - reducaoAusencias - reducaoPendencias);
-    const elegivel = elegibilidade_percentual > 0;
+    // Passo 4 - Valor Financeiro por Faixa
+    const valor_faixa2 = faixa2_max * percentual_faixa2;
+    const valor_faixa3 = faixa3_max * percentual_faixa3;
+    const valor_faixa4 = faixa4_max * percentual_faixa4;
 
-    // FAIXA 2 - Produtividade Individual (40% do total)
-    const chave_media = (avgChaveComportamento + avgChaveHabilidades + avgChaveAtitudes + avgChaveValores) / 4;
-    const score_faixa2_raw = (avgProdutividade * 0.30) + (avgQualidade * 0.30) + (chave_media * 0.40);
-    const score_faixa2 = score_faixa2_raw * 0.40;
-
-    // FAIXA 3 - Resultado com Cliente e Time (30% do total)
-    const nps_score = avgNpsProjeto >= 75 ? avgNpsProjeto : avgNpsProjeto * 0.5;
-    const backlog_score = avgBacklog <= 15 ? 100 : Math.max(0, 100 - (avgBacklog - 15) * 2);
-    const prioridades_score = avgPrioridades >= 95 ? 100 : avgPrioridades;
-    
-    const score_faixa3_raw = (nps_score * 0.40) + (backlog_score * 0.30) + (prioridades_score * 0.30);
-    const atingiu_minimo_faixa3 = score_faixa3_raw >= 85;
-    const score_faixa3 = (atingiu_minimo_faixa3 ? score_faixa3_raw : score_faixa3_raw * 0.7) * 0.30;
-
-    // FAIXA 4 - Multiplicador
-    let multiplicador_faixa4 = 1.0;
-    const atingiu_nps = avgNpsGlobal >= 75;
-    const atingiu_churn = avgChurn <= 10;
-    const atingiu_ava = avgUsoAva >= 50;
-
-    const criterios_atingidos = [atingiu_nps, atingiu_churn, atingiu_ava].filter(Boolean).length;
-    if (criterios_atingidos === 3) {
-      multiplicador_faixa4 = 1.3;
-    } else if (criterios_atingidos >= 2) {
-      multiplicador_faixa4 = 1.2;
-    } else if (criterios_atingidos >= 1) {
-      multiplicador_faixa4 = 1.1;
-    }
-
-    // Cálculo Final
-    const soma_faixas = score_faixa2 + score_faixa3;
-    const premio_percentual = elegivel ? (soma_faixas * (elegibilidade_percentual / 100) * multiplicador_faixa4) : 0;
-    const premio_valor = (Number(prestadorSelecionado.salario_fixo) * premio_percentual) / 100;
+    // Passo 5 - Prêmio Final
+    const premio_valor = elegivel ? (valor_faixa2 + valor_faixa3 + valor_faixa4) : 0;
 
     return {
       elegivel,
-      elegibilidade_percentual,
-      score_faixa2,
-      score_faixa3,
-      multiplicador_faixa4,
-      premio_percentual,
+      premio_maximo,
+      valor_faixa2,
+      valor_faixa3,
+      valor_faixa4,
       premio_valor,
-      salario_base: Number(prestadorSelecionado.salario_fixo),
+      salario_base,
       status: 'em_aberto',
       detalhes: {
         faixa1: {
           ausencias: totalAusencias,
           pendencias: totalPendencias,
-          reducao_ausencias: reducaoAusencias,
-          reducao_pendencias: reducaoPendencias,
+          notificacoes: totalNotificacoes,
         },
         faixa2: {
-          produtividade: avgProdutividade,
-          qualidade: avgQualidade,
-          chave_media,
+          produtividade: produtividade_sim,
+          qualidade: qualidade_sim,
+          comportamento: comportamento_sim,
+          habilidades: habilidades_sim,
+          atitudes: atitudes_sim,
+          valores: valores_sim,
+          percentual: percentual_faixa2 * 100,
         },
         faixa3: {
-          nps_projeto: avgNpsProjeto,
-          backlog: avgBacklog,
-          prioridades: avgPrioridades,
-          atingiu_minimo: atingiu_minimo_faixa3,
+          nps_projeto: nps_projeto_sim,
+          backlog: backlog_sim,
+          prioridades: prioridades_sim,
+          sla: sla_sim,
+          percentual: percentual_faixa3 * 100,
         },
         faixa4: {
-          nps_global: avgNpsGlobal,
-          churn: avgChurn,
-          uso_ava: avgUsoAva,
+          nps_global: nps_global_sim,
+          churn: churn_sim,
+          uso_ava: uso_ava_sim,
+          percentual: percentual_faixa4 * 100,
         },
       },
     } as ResultadoCalculo;
-  }, [avaliacoesFiltradas, prestadorSelecionado]);
+  }, [avaliacoesFiltradas, prestadorSelecionado, registrosGlobais]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -371,16 +393,16 @@ export default function Calculo() {
                 {/* Cards de Resultado */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Elegibilidade</p>
-                    <p className="text-2xl font-bold text-foreground">{formatPercent(resultado.elegibilidade_percentual)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Prêmio Máximo</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(resultado.premio_maximo)}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Score Faixa 2+3</p>
-                    <p className="text-2xl font-bold text-primary">{formatPercent(resultado.score_faixa2 + resultado.score_faixa3)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Faixa 2 (40%)</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(resultado.valor_faixa2)}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Multiplicador</p>
-                    <p className="text-2xl font-bold text-foreground">×{resultado.multiplicador_faixa4.toFixed(1)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Faixa 3 (40%)</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(resultado.valor_faixa3)}</p>
                   </div>
                   <div className="bg-primary/10 rounded-lg p-4 text-center">
                     <p className="text-xs text-muted-foreground mb-1">Prêmio Final</p>
@@ -395,27 +417,34 @@ export default function Calculo() {
                   <span className="faixa-number bg-amber-100 text-amber-700">🥉</span>
                   <div>
                     <h3 className="faixa-title">Faixa 1 – Existir e Ser Confiável</h3>
-                    <p className="text-sm text-muted-foreground">Elegibilidade (eliminatória)</p>
+                    <p className="text-sm text-muted-foreground">Elegibilidade (eliminatória - não gera valor)</p>
                   </div>
                   <Badge variant={resultado.elegivel ? 'success' : 'destructive'} className="ml-auto">
-                    {formatPercent(resultado.elegibilidade_percentual)} Elegibilidade
+                    {resultado.elegivel ? 'Elegível' : 'Inelegível'}
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="bg-muted/30 rounded-lg p-4">
                     <p className="text-xs text-muted-foreground mb-1">Ausências sem acordo</p>
                     <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.ausencias} dias</p>
-                    {resultado.detalhes.faixa1.reducao_ausencias > 0 && (
-                      <p className="text-xs text-destructive">-{resultado.detalhes.faixa1.reducao_ausencias}%</p>
-                    )}
+                    <p className={`text-xs ${resultado.detalhes.faixa1.ausencias < 3 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.ausencias < 3 ? '✓ OK' : '✗ Inelegível (≥3 dias)'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
                     <p className="text-xs text-muted-foreground mb-1">Pendências Admin/Fiscal</p>
                     <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.pendencias}</p>
-                    {resultado.detalhes.faixa1.reducao_pendencias > 0 && (
-                      <p className="text-xs text-destructive">-{resultado.detalhes.faixa1.reducao_pendencias}%</p>
-                    )}
+                    <p className={`text-xs ${resultado.detalhes.faixa1.pendencias === 0 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.pendencias === 0 ? '✓ OK' : '✗ Inelegível'}
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Notificações</p>
+                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.notificacoes}</p>
+                    <p className={`text-xs ${resultado.detalhes.faixa1.notificacoes === 0 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.notificacoes === 0 ? '✓ OK' : '✗ Inelegível'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -426,36 +455,56 @@ export default function Calculo() {
                   <span className="faixa-number bg-slate-100 text-slate-700">🥈</span>
                   <div>
                     <h3 className="faixa-title">Faixa 2 – Produtividade Individual</h3>
-                    <p className="text-sm text-muted-foreground">Peso: 40% do total</p>
+                    <p className="text-sm text-muted-foreground">Peso: 40% do prêmio máximo</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Score</p>
-                    <p className="text-xl font-bold text-primary">{formatPercent(resultado.score_faixa2)}</p>
+                    <p className="text-xs text-muted-foreground">Valor</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(resultado.valor_faixa2)}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Produtividade (30%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa2.produtividade)}</p>
-                    </div>
-                    <Progress value={resultado.detalhes.faixa2.produtividade} className="h-2" />
+                    <p className="text-xs text-muted-foreground mb-1">Produtividade mínima (30%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa2.produtividade ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa2.produtividade ? 'Sim' : 'Não'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Qualidade (30%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa2.qualidade)}</p>
-                    </div>
-                    <Progress value={resultado.detalhes.faixa2.qualidade} className="h-2" />
+                    <p className="text-xs text-muted-foreground mb-1">Qualidade mínima (30%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa2.qualidade ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa2.qualidade ? 'Sim' : 'Não'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Chave (40%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa2.chave_media * 100)}</p>
-                    </div>
-                    <Progress value={resultado.detalhes.faixa2.chave_media * 100} className="h-2" />
+                    <p className="text-xs text-muted-foreground mb-1">Comportamento (10%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa2.comportamento ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa2.comportamento ? 'Sim' : 'Não'}
+                    </p>
                   </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Habilidades (10%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa2.habilidades ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa2.habilidades ? 'Sim' : 'Não'}
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Atitudes (10%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa2.atitudes ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa2.atitudes ? 'Sim' : 'Não'}
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Valores (10%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa2.valores ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa2.valores ? 'Sim' : 'Não'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-muted/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Percentual atingido: <span className="font-semibold text-foreground">{formatPercent(resultado.detalhes.faixa2.percentual)}</span>
+                  </p>
                 </div>
               </div>
 
@@ -465,36 +514,44 @@ export default function Calculo() {
                   <span className="faixa-number bg-yellow-100 text-yellow-700">🥇</span>
                   <div>
                     <h3 className="faixa-title">Faixa 3 – Resultado com Cliente e Time</h3>
-                    <p className="text-sm text-muted-foreground">Peso: 30% do total</p>
+                    <p className="text-sm text-muted-foreground">Peso: 40% do prêmio máximo</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Score</p>
-                    <p className="text-xl font-bold text-primary">{formatPercent(resultado.score_faixa3)}</p>
+                    <p className="text-xs text-muted-foreground">Valor</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(resultado.valor_faixa3)}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">NPS Projeto (40%)</p>
-                      <p className="text-sm font-medium">{resultado.detalhes.faixa3.nps_projeto.toFixed(0)}</p>
-                    </div>
-                    <Progress value={resultado.detalhes.faixa3.nps_projeto} className="h-2" />
+                    <p className="text-xs text-muted-foreground mb-1">NPS Projeto ≥75 (40%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa3.nps_projeto ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa3.nps_projeto ? 'Sim' : 'Não'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Backlog (30%)</p>
-                      <p className="text-sm font-medium">{resultado.detalhes.faixa3.backlog.toFixed(0)} tasks</p>
-                    </div>
-                    <Progress value={Math.max(0, 100 - resultado.detalhes.faixa3.backlog)} className="h-2" />
+                    <p className="text-xs text-muted-foreground mb-1">Prioridades em dia (30%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa3.prioridades ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa3.prioridades ? 'Sim' : 'Não'}
+                    </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">Prioridades (30%)</p>
-                      <p className="text-sm font-medium">{formatPercent(resultado.detalhes.faixa3.prioridades)}</p>
-                    </div>
-                    <Progress value={resultado.detalhes.faixa3.prioridades} className="h-2" />
+                    <p className="text-xs text-muted-foreground mb-1">Backlog &lt;15% (30%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa3.backlog ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa3.backlog ? 'Sim' : 'Não'}
+                    </p>
                   </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">SLA 1ª hora (0% - info)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa3.sla ? 'text-success' : 'text-muted-foreground'}`}>
+                      {resultado.detalhes.faixa3.sla ? 'Sim' : 'Não'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-muted/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Percentual atingido: <span className="font-semibold text-foreground">{formatPercent(resultado.detalhes.faixa3.percentual)}</span>
+                  </p>
                 </div>
               </div>
 
@@ -504,36 +561,38 @@ export default function Calculo() {
                   <span className="faixa-number bg-purple-100 text-purple-700">🏆</span>
                   <div>
                     <h3 className="faixa-title">Faixa 4 – Resultado Empresa</h3>
-                    <p className="text-sm text-muted-foreground">Multiplicador</p>
+                    <p className="text-sm text-muted-foreground">Peso: 20% do prêmio máximo</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Multiplicador</p>
-                    <p className="text-xl font-bold text-primary">×{resultado.multiplicador_faixa4.toFixed(1)}</p>
+                    <p className="text-xs text-muted-foreground">Valor</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(resultado.valor_faixa4)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-xs text-muted-foreground mb-1">NPS Global</p>
-                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa4.nps_global.toFixed(0)}</p>
-                    <p className={`text-xs ${resultado.detalhes.faixa4.nps_global >= 75 ? 'text-success' : 'text-destructive'}`}>
-                      {resultado.detalhes.faixa4.nps_global >= 75 ? '✓ Meta atingida' : '✗ Abaixo da meta'}
+                    <p className="text-xs text-muted-foreground mb-1">NPS Global ≥75 (40%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa4.nps_global ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa4.nps_global ? 'Sim' : 'Não'}
                     </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-xs text-muted-foreground mb-1">Churn</p>
-                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa4.churn.toFixed(1)}%</p>
-                    <p className={`text-xs ${resultado.detalhes.faixa4.churn <= 10 ? 'text-success' : 'text-destructive'}`}>
-                      {resultado.detalhes.faixa4.churn <= 10 ? '✓ Meta atingida' : '✗ Acima da meta'}
+                    <p className="text-xs text-muted-foreground mb-1">Churn ≥1 (30%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa4.churn ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa4.churn ? 'Sim' : 'Não'}
                     </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-xs text-muted-foreground mb-1">Uso AVA</p>
-                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa4.uso_ava.toFixed(0)}%</p>
-                    <p className={`text-xs ${resultado.detalhes.faixa4.uso_ava >= 50 ? 'text-success' : 'text-destructive'}`}>
-                      {resultado.detalhes.faixa4.uso_ava >= 50 ? '✓ Meta atingida' : '✗ Abaixo da meta'}
+                    <p className="text-xs text-muted-foreground mb-1">Uso AVA &gt;50% (30%)</p>
+                    <p className={`text-xl font-semibold ${resultado.detalhes.faixa4.uso_ava ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa4.uso_ava ? 'Sim' : 'Não'}
                     </p>
                   </div>
+                </div>
+                <div className="mt-4 p-3 bg-muted/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Percentual atingido: <span className="font-semibold text-foreground">{formatPercent(resultado.detalhes.faixa4.percentual)}</span>
+                  </p>
                 </div>
               </div>
             </div>
