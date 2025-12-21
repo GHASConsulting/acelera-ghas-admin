@@ -20,6 +20,7 @@ export type Database = {
           avaliador_id: string
           criado_em: string
           faixa1_ausencias: number
+          faixa1_notificacoes: number
           faixa1_pendencias: number
           faixa2_chave_atitudes: number
           faixa2_chave_comportamento: number
@@ -43,6 +44,7 @@ export type Database = {
           avaliador_id: string
           criado_em?: string
           faixa1_ausencias?: number
+          faixa1_notificacoes?: number
           faixa1_pendencias?: number
           faixa2_chave_atitudes?: number
           faixa2_chave_comportamento?: number
@@ -66,6 +68,7 @@ export type Database = {
           avaliador_id?: string
           criado_em?: string
           faixa1_ausencias?: number
+          faixa1_notificacoes?: number
           faixa1_pendencias?: number
           faixa2_chave_atitudes?: number
           faixa2_chave_comportamento?: number
