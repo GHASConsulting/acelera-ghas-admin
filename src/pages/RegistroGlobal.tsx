@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal, useDeleteRegistroGlobal } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
@@ -287,21 +287,21 @@ export default function RegistroGlobalPage() {
 
                       <div className="flex items-center gap-6">
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">NPS Global</p>
+                          <p className="text-xs text-muted-foreground mb-1">NPS Global ≥75</p>
                           <p className="text-lg font-bold text-primary">
-                            {Number(registro.faixa4_nps_global)}
+                            {Number(registro.faixa4_nps_global) === 1 ? 'Sim' : 'Não'}
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Churn</p>
+                          <p className="text-xs text-muted-foreground mb-1">Churn ≥1</p>
                           <p className="text-lg font-bold text-primary">
-                            {Number(registro.faixa4_churn)}%
+                            {Number(registro.faixa4_churn) === 1 ? 'Sim' : 'Não'}
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Uso AVA</p>
+                          <p className="text-xs text-muted-foreground mb-1">Uso AVA &gt;50%</p>
                           <p className="text-lg font-bold text-primary">
-                            {Number(registro.faixa4_uso_ava)}%
+                            {Number(registro.faixa4_uso_ava) === 1 ? 'Sim' : 'Não'}
                           </p>
                         </div>
                       </div>
@@ -374,9 +374,10 @@ export default function RegistroGlobalPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
+                  {/* NPS Global */}
                   <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">NPS Global GHAS (Peso 40%)</Label>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Label className="input-label">O Score mensal do NPS Global da GHAS ficou igual ou superior a 75? (Peso 40%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -388,23 +389,26 @@ export default function RegistroGlobalPage() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[Number(currentRegistro.faixa4_nps_global)]}
-                        onValueChange={([v]) => updateField('faixa4_nps_global', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {Number(currentRegistro.faixa4_nps_global)}
-                      </span>
-                    </div>
+                    <RadioGroup
+                      value={String(currentRegistro.faixa4_nps_global)}
+                      onValueChange={(v) => updateField('faixa4_nps_global', Number(v))}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="1" id="nps-sim" />
+                        <Label htmlFor="nps-sim" className="cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="0" id="nps-nao" />
+                        <Label htmlFor="nps-nao" className="cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
 
+                  {/* Churn */}
                   <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Churn (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Label className="input-label">O Churn da GHAS foi igual ou superior a 1? (Peso 30%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -416,46 +420,51 @@ export default function RegistroGlobalPage() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[Number(currentRegistro.faixa4_churn)]}
-                        onValueChange={([v]) => updateField('faixa4_churn', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {Number(currentRegistro.faixa4_churn)}%
-                      </span>
-                    </div>
+                    <RadioGroup
+                      value={String(currentRegistro.faixa4_churn)}
+                      onValueChange={(v) => updateField('faixa4_churn', Number(v))}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="1" id="churn-sim" />
+                        <Label htmlFor="churn-sim" className="cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="0" id="churn-nao" />
+                        <Label htmlFor="churn-nao" className="cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
 
+                  {/* Uso AVA */}
                   <div className="input-group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="input-label">Uso da AVA (Peso 30%)</Label>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Label className="input-label">Tivemos mais de 50% de uso da AVA no mês? (Peso 30%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-sm text-sm" side="right">
-                            <p>Uso da AVA</p>
+                            <p>Tivemos mais de <strong>50%</strong> de uso da AVA no mês?</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[Number(currentRegistro.faixa4_uso_ava)]}
-                        onValueChange={([v]) => updateField('faixa4_uso_ava', v)}
-                        max={100}
-                        step={1}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">
-                        {Number(currentRegistro.faixa4_uso_ava)}%
-                      </span>
-                    </div>
+                    <RadioGroup
+                      value={String(currentRegistro.faixa4_uso_ava)}
+                      onValueChange={(v) => updateField('faixa4_uso_ava', Number(v))}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="1" id="ava-sim" />
+                        <Label htmlFor="ava-sim" className="cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="0" id="ava-nao" />
+                        <Label htmlFor="ava-nao" className="cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
               </div>
