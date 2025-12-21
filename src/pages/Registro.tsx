@@ -123,24 +123,18 @@ Pendências administrativas:
 • Falta de assinatura de documentos GHAS
 • Não entrega de Gestão de Viagens (15 dias para ônibus, 30 dias para avião)`,
   
-  produtividade: `Metas mínimas:
-• N1: 120 chamados
-• N2: 60 chamados
-• Especialista: 60 chamados
-
-Obs.: Se não atingir a meta mínima, deve:
-(a) Possuir backlog ≤ 3 chamados ao fim do mês, ou
-(b) Todas as atividades de cronogramas/prioridades entregues em dia`,
+  notificacoes: `Quantidade de notificações formais ao prestador no mês.
+• 0: Nenhuma notificação
+• 1 ou mais: Prestador recebeu notificação formal`,
   
-  qualidade: `Avaliação por amostragem mínima de 6 chamados mensais.
-
-Critérios de qualidade:
-• Registro completo da análise da demanda
-• Registro dos prazos e escopo acordados
-• Registro em português claro e correto
-• Registro da solução oferecida ao cliente
-• Registro das alterações realizadas
-• Registro da validação e aceite do encerramento`,
+  produtividade: `O prestador atingiu a produtividade mínima exigida para sua função?
+• Sim: Atingiu a meta mínima
+• Não: Não atingiu a meta mínima`,
+  
+  qualidade: `O prestador atingiu a qualidade mínima exigida?
+Avaliação por amostragem mínima de 6 chamados mensais.
+• Sim: Atingiu a qualidade mínima
+• Não: Não atingiu a qualidade mínima`,
   
   chave: `Avaliação mensal do Prestador Líder sobre diretrizes da CHAVE GHAS:
 
@@ -149,14 +143,13 @@ Critérios de qualidade:
 • Atitudes conforme CHAVE GHAS?
 • Alinhamento com os Valores conforme CHAVE GHAS?`,
   
-  nps_projeto: `NPS do cliente deve estar com score mensal igual ou superior a 75.`,
+  nps_projeto: `O Score mensal do NPS do cliente ficou igual ou superior a 75?`,
   
-  sla: `90% dos chamados abertos devem ter primeiro atendimento em até 1 hora.`,
+  sla: `Acima de 90% dos chamados abertos no mês foram realizados o primeiro atendimento em até 1 hora?`,
   
-  prioridades: `95% ou mais das atividades devem estar sem atraso ao fim do mês.`,
+  prioridades: `Prestador Líder garantiu 95% ou mais das atividades da Lista de Prioridade em dia?`,
   
-  backlog: `• Garantir que o mês não encerrou com backlog acima de 15% do total de chamados abertos
-• Garantir que não haja chamados abertos a mais de 90 dias fora da Lista de prioridades com cronograma pré-determinado`,
+  backlog: `Prestador Líder garantiu backlog menor que 15% em relação aos chamados abertos no encerramento do mês e que não tenha chamados abertos a mais de 90 dias, que não estão na Lista de Prioridade?`,
   
   nps_global: `NPS Mensal da GHAS deve estar com score mensal igual ou superior a 75.`,
   
@@ -350,9 +343,8 @@ export default function Registro() {
   const calcularScoreFaixa3 = (avaliacao: Partial<AvaliacaoMensal>) => {
     return (
       (Number(avaliacao.faixa3_nps_projeto ?? 0) * 0.4 +
-        (100 - Number(avaliacao.faixa3_backlog ?? 0)) * 0.3 +
-        Number(avaliacao.faixa3_prioridades ?? 0) * 0.3) /
-      1
+        Number(avaliacao.faixa3_backlog ?? 0) * 0.3 +
+        Number(avaliacao.faixa3_prioridades ?? 0) * 0.3)
     ).toFixed(1);
   };
 
@@ -587,7 +579,7 @@ export default function Registro() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 mt-4">
+                <div className="grid grid-cols-3 gap-6 mt-4">
                   <div>
                     <Label className="input-label mb-2 flex items-center">
                       Ausências sem acordo prévio
@@ -630,6 +622,27 @@ export default function Registro() {
                       ))}
                     </RadioGroup>
                   </div>
+                  <div>
+                    <Label className="input-label mb-2 flex items-center">
+                      Quantidade de Notificação ao Prestador
+                      <InfoTooltip content={TOOLTIPS.notificacoes} />
+                    </Label>
+                    <RadioGroup
+                      value={String((currentAvaliacao as any).faixa1_notificacoes ?? 0)}
+                      onValueChange={(val) => updateField('faixa1_notificacoes' as any, parseInt(val))}
+                      disabled={!isEditing}
+                      className="flex flex-wrap gap-3"
+                    >
+                      {[0, 1].map((num) => (
+                        <div key={num} className="flex items-center space-x-2">
+                          <RadioGroupItem value={String(num)} id={`notificacoes-${num}`} disabled={!isEditing} />
+                          <Label htmlFor={`notificacoes-${num}`} className="text-sm cursor-pointer">
+                            {num === 1 ? '1 ou mais' : '0'}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
                 </div>
               </div>
 
@@ -646,32 +659,40 @@ export default function Registro() {
 
                 <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label flex items-center">Produtividade (Peso 30%)<InfoTooltip content={TOOLTIPS.produtividade} /></Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[Number(currentAvaliacao.faixa2_produtividade ?? 0)]}
-                        onValueChange={([val]) => updateField('faixa2_produtividade', val)}
-                        max={100}
-                        step={1}
-                        disabled={!isEditing}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">{currentAvaliacao.faixa2_produtividade ?? 0}%</span>
-                    </div>
+                    <Label className="input-label flex items-center mb-2">Prestador atingiu produtividade mínima exigida? (Peso 30%)<InfoTooltip content={TOOLTIPS.produtividade} /></Label>
+                    <RadioGroup
+                      value={Number(currentAvaliacao.faixa2_produtividade ?? 0) >= 50 ? 'sim' : 'nao'}
+                      onValueChange={(val) => updateField('faixa2_produtividade', val === 'sim' ? 100 : 0)}
+                      disabled={!isEditing}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="produtividade-sim" disabled={!isEditing} />
+                        <Label htmlFor="produtividade-sim" className="text-sm cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="produtividade-nao" disabled={!isEditing} />
+                        <Label htmlFor="produtividade-nao" className="text-sm cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                   <div>
-                    <Label className="input-label flex items-center">Quantidade de Registros (Peso 30%)<InfoTooltip content={TOOLTIPS.qualidade} /></Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[Number(currentAvaliacao.faixa2_qualidade ?? 0)]}
-                        onValueChange={([val]) => updateField('faixa2_qualidade', val)}
-                        max={100}
-                        step={1}
-                        disabled={!isEditing}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-right font-medium">{currentAvaliacao.faixa2_qualidade ?? 0}%</span>
-                    </div>
+                    <Label className="input-label flex items-center mb-2">Prestador atingiu qualidade mínima exigida? (Peso 30%)<InfoTooltip content={TOOLTIPS.qualidade} /></Label>
+                    <RadioGroup
+                      value={Number(currentAvaliacao.faixa2_qualidade ?? 0) >= 50 ? 'sim' : 'nao'}
+                      onValueChange={(val) => updateField('faixa2_qualidade', val === 'sim' ? 100 : 0)}
+                      disabled={!isEditing}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="qualidade-sim" disabled={!isEditing} />
+                        <Label htmlFor="qualidade-sim" className="text-sm cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="qualidade-nao" disabled={!isEditing} />
+                        <Label htmlFor="qualidade-nao" className="text-sm cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
 
@@ -765,65 +786,81 @@ export default function Registro() {
                   <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa3(currentAvaliacao)}%</p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-4">
+                <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label flex items-center">NPS do Projeto (Peso 40%)<InfoTooltip content={TOOLTIPS.nps_projeto} /></Label>
-                    <div className="flex items-center gap-2">
-                      <Slider
-                        value={[Number(currentAvaliacao.faixa3_nps_projeto ?? 0)]}
-                        onValueChange={([val]) => updateField('faixa3_nps_projeto', val)}
-                        max={100}
-                        step={1}
-                        disabled={!isEditing}
-                        className="flex-1"
-                      />
-                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_nps_projeto ?? 0}</span>
-                    </div>
+                    <Label className="input-label flex items-center mb-2">O Score mensal do NPS do cliente ficou igual ou superior a 75? (Peso 40%)<InfoTooltip content={TOOLTIPS.nps_projeto} /></Label>
+                    <RadioGroup
+                      value={Number(currentAvaliacao.faixa3_nps_projeto ?? 0) >= 50 ? 'sim' : 'nao'}
+                      onValueChange={(val) => updateField('faixa3_nps_projeto', val === 'sim' ? 100 : 0)}
+                      disabled={!isEditing}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="nps-projeto-sim" disabled={!isEditing} />
+                        <Label htmlFor="nps-projeto-sim" className="text-sm cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="nps-projeto-nao" disabled={!isEditing} />
+                        <Label htmlFor="nps-projeto-nao" className="text-sm cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                   <div>
-                    <Label className="input-label flex items-center">Backlog (Peso 30%)<InfoTooltip content={TOOLTIPS.backlog} /></Label>
-                    <div className="flex items-center gap-2">
-                      <Slider
-                        value={[Number(currentAvaliacao.faixa3_backlog ?? 0)]}
-                        onValueChange={([val]) => updateField('faixa3_backlog', val)}
-                        max={100}
-                        step={1}
-                        disabled={!isEditing}
-                        className="flex-1"
-                      />
-                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_backlog ?? 0}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="input-label flex items-center">Prioridades em Dia (Peso 30%)<InfoTooltip content={TOOLTIPS.prioridades} /></Label>
-                    <div className="flex items-center gap-2">
-                      <Slider
-                        value={[Number(currentAvaliacao.faixa3_prioridades ?? 0)]}
-                        onValueChange={([val]) => updateField('faixa3_prioridades', val)}
-                        max={100}
-                        step={1}
-                        disabled={!isEditing}
-                        className="flex-1"
-                      />
-                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_prioridades ?? 0}%</span>
-                    </div>
+                    <Label className="input-label flex items-center mb-2">Prestador Líder garantiu backlog menor que 15% em relação aos chamados abertos no encerramento do mês e que não tenha chamados abertos a mais de 90 dias, que não estão na Lista de Prioridade? (Peso 30%)<InfoTooltip content={TOOLTIPS.backlog} /></Label>
+                    <RadioGroup
+                      value={Number(currentAvaliacao.faixa3_backlog ?? 0) >= 50 ? 'sim' : 'nao'}
+                      onValueChange={(val) => updateField('faixa3_backlog', val === 'sim' ? 100 : 0)}
+                      disabled={!isEditing}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="backlog-sim" disabled={!isEditing} />
+                        <Label htmlFor="backlog-sim" className="text-sm cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="backlog-nao" disabled={!isEditing} />
+                        <Label htmlFor="backlog-nao" className="text-sm cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 mt-4">
+                <div className="grid grid-cols-2 gap-6 mt-4">
                   <div>
-                    <Label className="input-label flex items-center">% de SLA Primeiro Atendimento (Peso 0%)<InfoTooltip content={TOOLTIPS.sla} /></Label>
-                    <div className="flex items-center gap-2">
-                      <Slider
-                        value={[Number(currentAvaliacao.faixa3_sla ?? 0)]}
-                        onValueChange={([val]) => updateField('faixa3_sla', val)}
-                        max={100}
-                        step={1}
-                        disabled={!isEditing}
-                        className="flex-1"
-                      />
-                      <span className="w-10 text-right text-sm">{currentAvaliacao.faixa3_sla ?? 0}%</span>
-                    </div>
+                    <Label className="input-label flex items-center mb-2">Prestador Líder garantiu 95% ou mais das atividades da Lista de Prioridade em dia? (Peso 30%)<InfoTooltip content={TOOLTIPS.prioridades} /></Label>
+                    <RadioGroup
+                      value={Number(currentAvaliacao.faixa3_prioridades ?? 0) >= 50 ? 'sim' : 'nao'}
+                      onValueChange={(val) => updateField('faixa3_prioridades', val === 'sim' ? 100 : 0)}
+                      disabled={!isEditing}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="prioridades-sim" disabled={!isEditing} />
+                        <Label htmlFor="prioridades-sim" className="text-sm cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="prioridades-nao" disabled={!isEditing} />
+                        <Label htmlFor="prioridades-nao" className="text-sm cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div>
+                    <Label className="input-label flex items-center mb-2">Acima de 90% dos chamados abertos no mês foram realizados o primeiro atendimento em até 1 hora? (Peso 0%)<InfoTooltip content={TOOLTIPS.sla} /></Label>
+                    <RadioGroup
+                      value={Number(currentAvaliacao.faixa3_sla ?? 0) >= 50 ? 'sim' : 'nao'}
+                      onValueChange={(val) => updateField('faixa3_sla', val === 'sim' ? 100 : 0)}
+                      disabled={!isEditing}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="sla-sim" disabled={!isEditing} />
+                        <Label htmlFor="sla-sim" className="text-sm cursor-pointer">Sim</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="sla-nao" disabled={!isEditing} />
+                        <Label htmlFor="sla-nao" className="text-sm cursor-pointer">Não</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
               </div>
