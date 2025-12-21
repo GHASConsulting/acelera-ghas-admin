@@ -67,6 +67,19 @@ const MESES_AVALIACAO = [
   'Dezembro/2026',
 ];
 
+// Função para extrair índice do mês (1-12)
+const getMesIndex = (mes: string): number => {
+  const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const mesNome = mes.split('/')[0];
+  return mesesNomes.indexOf(mesNome);
+};
+
+// Função para ordenar por mês (1-12)
+const ordenarPorMes = <T extends { mes: string }>(items: T[]): T[] => {
+  return [...items].sort((a, b) => getMesIndex(a.mes) - getMesIndex(b.mes));
+};
+
 // Componente de tooltip de informação usando HoverCard para melhor visualização
 const InfoTooltip = ({ content, preferSide = "top" }: { content: React.ReactNode; preferSide?: "top" | "bottom" | "left" | "right" }) => (
   <HoverCard openDelay={100} closeDelay={100}>
@@ -447,7 +460,7 @@ export default function Registro() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {avaliacoes.map((avaliacao) => (
+                  {ordenarPorMes(avaliacoes).map((avaliacao) => (
                     <div
                       key={avaliacao.id}
                       className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer"

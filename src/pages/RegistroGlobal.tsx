@@ -58,6 +58,19 @@ const MESES_AVALIACAO = [
   'Dezembro/2026',
 ];
 
+// Função para extrair índice do mês (1-12)
+const getMesIndex = (mes: string): number => {
+  const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const mesNome = mes.split('/')[0];
+  return mesesNomes.indexOf(mesNome);
+};
+
+// Função para ordenar por mês (1-12)
+const ordenarPorMes = <T extends { mes: string }>(items: T[]): T[] => {
+  return [...items].sort((a, b) => getMesIndex(a.mes) - getMesIndex(b.mes));
+};
+
 export default function RegistroGlobalPage() {
   const { data: registros = [], isLoading } = useRegistrosGlobais();
   const { prestador, isResponsavelGhas, isAdmin, loading: loadingUser } = usePrestadorLogado();
@@ -265,7 +278,7 @@ export default function RegistroGlobalPage() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {registros.map((registro) => (
+                {ordenarPorMes(registros).map((registro) => (
                   <div
                     key={registro.id}
                     className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer"

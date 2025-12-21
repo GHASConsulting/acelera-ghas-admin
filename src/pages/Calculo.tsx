@@ -71,6 +71,19 @@ const SEMESTRE_2_MESES: string[] = [
   'Julho/2026', 'Agosto/2026', 'Setembro/2026', 'Outubro/2026', 'Novembro/2026', 'Dezembro/2026'
 ];
 
+// Função para extrair índice do mês (1-12)
+const getMesIndex = (mes: string): number => {
+  const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const mesNome = mes.split('/')[0];
+  return mesesNomes.indexOf(mesNome);
+};
+
+// Função para ordenar por mês (1-12)
+const ordenarPorMes = <T extends { mes: string }>(items: T[]): T[] => {
+  return [...items].sort((a, b) => getMesIndex(a.mes) - getMesIndex(b.mes));
+};
+
 export default function Calculo() {
   const [selectedPrestador, setSelectedPrestador] = useState<string>('');
   const [selectedPeriodo, setSelectedPeriodo] = useState<Periodo>('mensal');
@@ -330,7 +343,7 @@ export default function Calculo() {
                 </Select>
               </div>
 
-              {selectedPeriodo === 'mensal' && (
+              {selectedPeriodo === 'mensal' && selectedPrestador && (
                 <div>
                   <Label className="input-label mb-2 block">Mês</Label>
                   <Select value={selectedMes} onValueChange={(v) => setSelectedMes(v)}>
@@ -338,7 +351,7 @@ export default function Calculo() {
                       <SelectValue placeholder="Selecione o mês..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {avaliacoesPrestador.map((a) => (
+                      {ordenarPorMes(avaliacoesPrestador).map((a) => (
                         <SelectItem key={a.mes} value={a.mes}>
                           {a.mes}
                         </SelectItem>
