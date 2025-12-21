@@ -895,42 +895,33 @@ export default function Registro() {
                       <div className="grid grid-cols-3 gap-6 mt-4">
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            NPS Global GHAS (Peso 40%)
+                            O Score mensal do NPS Global da GHAS ficou igual ou superior a 75? (Peso 40%)
                             <InfoTooltip content={TOOLTIPS.nps_global} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
-                          <Input
-                            type="number"
-                            value={registroGlobal.faixa4_nps_global}
-                            disabled
-                            className="bg-muted"
-                          />
+                          <div className="mt-2 px-3 py-2 bg-muted rounded-md text-sm font-medium">
+                            {Number(registroGlobal.faixa4_nps_global) === 1 ? 'Sim' : 'Não'}
+                          </div>
                         </div>
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            Churn (Peso 30%)
+                            O Churn da GHAS foi igual ou superior a 1? (Peso 30%)
                             <InfoTooltip content={TOOLTIPS.churn} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
-                          <Input
-                            type="number"
-                            value={registroGlobal.faixa4_churn}
-                            disabled
-                            className="bg-muted"
-                          />
+                          <div className="mt-2 px-3 py-2 bg-muted rounded-md text-sm font-medium">
+                            {Number(registroGlobal.faixa4_churn) === 1 ? 'Sim' : 'Não'}
+                          </div>
                         </div>
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            Uso da AVA (Peso 30%)
+                            Tivemos mais de 50% de uso da AVA no mês? (Peso 30%)
                             <InfoTooltip content={TOOLTIPS.uso_ava} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
-                          <Input
-                            type="number"
-                            value={registroGlobal.faixa4_uso_ava}
-                            disabled
-                            className="bg-muted"
-                          />
+                          <div className="mt-2 px-3 py-2 bg-muted rounded-md text-sm font-medium">
+                            {Number(registroGlobal.faixa4_uso_ava) === 1 ? 'Sim' : 'Não'}
+                          </div>
                         </div>
                       </div>
                     ) : (
