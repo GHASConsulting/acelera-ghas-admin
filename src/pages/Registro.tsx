@@ -793,7 +793,7 @@ export default function Registro() {
                 <div className="faixa-header">
                   <span className="faixa-number">3</span>
                   <div>
-                    <h3 className="faixa-title">Resultado com Cliente e Time (Peso 30%)</h3>
+                    <h3 className="faixa-title">Resultado com Cliente e Time (Peso 40%)</h3>
                     <p className="text-sm text-muted-foreground">Desempenho com cliente e equipe</p>
                   </div>
                   <p className="ml-auto text-xl font-bold text-primary">{calcularScoreFaixa3(currentAvaliacao)}%</p>
