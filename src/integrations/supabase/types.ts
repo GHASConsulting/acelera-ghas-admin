@@ -35,6 +35,9 @@ export type Database = {
           faixa4_churn: number
           faixa4_nps_global: number
           faixa4_uso_ava: number
+          feedback_comecar_fazer: string | null
+          feedback_continuar_fazer: string | null
+          feedback_parar_fazer: string | null
           id: string
           mes: string
           prestador_id: string
@@ -59,6 +62,9 @@ export type Database = {
           faixa4_churn?: number
           faixa4_nps_global?: number
           faixa4_uso_ava?: number
+          feedback_comecar_fazer?: string | null
+          feedback_continuar_fazer?: string | null
+          feedback_parar_fazer?: string | null
           id?: string
           mes: string
           prestador_id: string
@@ -83,6 +89,9 @@ export type Database = {
           faixa4_churn?: number
           faixa4_nps_global?: number
           faixa4_uso_ava?: number
+          feedback_comecar_fazer?: string | null
+          feedback_continuar_fazer?: string | null
+          feedback_parar_fazer?: string | null
           id?: string
           mes?: string
           prestador_id?: string
