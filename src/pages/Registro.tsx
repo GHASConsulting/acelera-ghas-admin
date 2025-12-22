@@ -487,13 +487,11 @@ export default function Registro() {
                         <div className="flex items-center gap-6">
                           <div className="text-center">
                             <p className="text-xs text-muted-foreground mb-1">Elegibilidade</p>
-                            <Badge
-                              variant={calcularElegibilidade(avaliacao) ? 'success' : 'destructive'}
-                            >
-                              {calcularElegibilidade(avaliacao) 
-                                ? `Elegível${calcularReducaoElegibilidade(avaliacao) > 0 ? ` (-${calcularReducaoElegibilidade(avaliacao)}%)` : ''}`
-                                : 'Inelegível'}
-                            </Badge>
+                            <div 
+                              className={`w-4 h-4 rounded-full mx-auto ${
+                                calcularElegibilidade(avaliacao) ? 'bg-green-500' : 'bg-red-500'
+                              }`}
+                            />
                           </div>
                           <div className="text-center">
                             <p className="text-xs text-muted-foreground mb-1">Faixa 2</p>
@@ -581,19 +579,11 @@ export default function Registro() {
                       Define se o prestador está elegível para premiação
                     </p>
                   </div>
-                  <Badge
-                    variant={calcularElegibilidade(currentAvaliacao) ? 'success' : 'destructive'}
-                    className="ml-auto"
-                  >
-                    {calcularElegibilidade(currentAvaliacao) ? (
-                      <>
-                        <CheckCircle2 className="w-3 h-3 mr-1" /> 
-                        Elegível{calcularReducaoElegibilidade(currentAvaliacao) > 0 ? ` (-${calcularReducaoElegibilidade(currentAvaliacao)}%)` : ''}
-                      </>
-                    ) : (
-                      <><AlertCircle className="w-3 h-3 mr-1" /> Inelegível</>
-                    )}
-                  </Badge>
+                  <div 
+                    className={`ml-auto w-5 h-5 rounded-full ${
+                      calcularElegibilidade(currentAvaliacao) ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                  />
                 </div>
 
                 <div className="grid grid-cols-3 gap-6 mt-4">
