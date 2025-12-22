@@ -268,6 +268,20 @@ export default function Calculo() {
     } as ResultadoCalculo;
   }, [avaliacoesFiltradas, prestadorSelecionado, registrosGlobais]);
 
+  // Fator de divisão: quando mensal, divide por 6
+  const divisor = selectedPeriodo === 'mensal' ? 6 : 1;
+
+  // Valores exibidos (divididos por 6 quando mensal)
+  const valoresExibidos = useMemo(() => {
+    if (!resultado) return null;
+    return {
+      premio_final: resultado.premio_valor / divisor,
+      valor_faixa2: resultado.valor_faixa2 / divisor,
+      valor_faixa3: resultado.valor_faixa3 / divisor,
+      valor_faixa4: resultado.valor_faixa4 / divisor,
+    };
+  }, [resultado, divisor]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -410,16 +424,16 @@ export default function Calculo() {
                     <p className="text-2xl font-bold text-foreground">{formatCurrency(resultado.premio_maximo)}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Faixa 2 (40%)</p>
-                    <p className="text-2xl font-bold text-primary">{formatCurrency(resultado.valor_faixa2)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Faixa 2 (40%){selectedPeriodo === 'mensal' && ' /6'}</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(valoresExibidos!.valor_faixa2)}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Faixa 3 (40%)</p>
-                    <p className="text-2xl font-bold text-primary">{formatCurrency(resultado.valor_faixa3)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Faixa 3 (40%){selectedPeriodo === 'mensal' && ' /6'}</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(valoresExibidos!.valor_faixa3)}</p>
                   </div>
                   <div className="bg-primary/10 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Prêmio Final</p>
-                    <p className="text-2xl font-bold text-primary">{formatCurrency(resultado.premio_valor)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Prêmio Final{selectedPeriodo === 'mensal' && ' /6'}</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(valoresExibidos!.premio_final)}</p>
                   </div>
                 </div>
               </div>
@@ -471,8 +485,8 @@ export default function Calculo() {
                     <p className="text-sm text-muted-foreground">Peso: 40% do prêmio máximo</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Valor</p>
-                    <p className="text-xl font-bold text-primary">{formatCurrency(resultado.valor_faixa2)}</p>
+                    <p className="text-xs text-muted-foreground">Valor{selectedPeriodo === 'mensal' && ' /6'}</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(valoresExibidos!.valor_faixa2)}</p>
                   </div>
                 </div>
 
@@ -530,8 +544,8 @@ export default function Calculo() {
                     <p className="text-sm text-muted-foreground">Peso: 40% do prêmio máximo</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Valor</p>
-                    <p className="text-xl font-bold text-primary">{formatCurrency(resultado.valor_faixa3)}</p>
+                    <p className="text-xs text-muted-foreground">Valor{selectedPeriodo === 'mensal' && ' /6'}</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(valoresExibidos!.valor_faixa3)}</p>
                   </div>
                 </div>
 
@@ -577,8 +591,8 @@ export default function Calculo() {
                     <p className="text-sm text-muted-foreground">Peso: 20% do prêmio máximo</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-xs text-muted-foreground">Valor</p>
-                    <p className="text-xl font-bold text-primary">{formatCurrency(resultado.valor_faixa4)}</p>
+                    <p className="text-xs text-muted-foreground">Valor{selectedPeriodo === 'mensal' && ' /6'}</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(valoresExibidos!.valor_faixa4)}</p>
                   </div>
                 </div>
 
