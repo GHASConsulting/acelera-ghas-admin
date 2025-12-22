@@ -132,44 +132,30 @@ export default function Calculo() {
     return [];
   }, [avaliacoesPrestador, selectedPeriodo, selectedMes]);
 
-  // Calcular resultado
-  const resultado = useMemo((): ResultadoCalculo | null => {
-    if (avaliacoesFiltradas.length === 0 || !prestadorSelecionado) return null;
-
-    const salario_base = Number(prestadorSelecionado.salario_fixo);
-    
-    // Passo 1 - Prêmio Máximo: 80% do salário
+  // Função para calcular resultado de um único mês
+  const calcularResultadoMes = (avaliacao: AvaliacaoMensal, salario_base: number): {
+    elegivel: boolean;
+    premio_valor: number;
+    valor_faixa2: number;
+    valor_faixa3: number;
+    valor_faixa4: number;
+    detalhes: ResultadoCalculo['detalhes'];
+  } => {
     const premio_maximo = salario_base * 0.8;
+    const faixa2_max = premio_maximo * 0.4;
+    const faixa3_max = premio_maximo * 0.4;
+    const faixa4_max = premio_maximo * 0.2;
 
-    // Passo 2 - Distribuição por Faixa
-    const faixa2_max = premio_maximo * 0.4; // 40%
-    const faixa3_max = premio_maximo * 0.4; // 40%
-    const faixa4_max = premio_maximo * 0.2; // 20%
+    // FAIXA 1 - Elegibilidade
+    const elegivel = avaliacao.faixa1_ausencias < 3 && avaliacao.faixa1_pendencias === 0 && avaliacao.faixa1_notificacoes === 0;
 
-    // Agregar dados (para semestral usa média, valores são binários 0 ou 1)
-    const totalAusencias = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_ausencias, 0);
-    const totalPendencias = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_pendencias, 0);
-    const totalNotificacoes = avaliacoesFiltradas.reduce((sum, a) => sum + a.faixa1_notificacoes, 0);
-
-    // FAIXA 1 - Elegibilidade (não gera valor, apenas verifica)
-    // Ausências >= 3 ou Pendências >= 1 ou Notificações >= 1 = inelegível
-    const elegivel = totalAusencias < 3 && totalPendencias === 0 && totalNotificacoes === 0;
-
-    // FAIXA 2 - Produtividade Individual (valores binários)
-    // Para semestral: considera "Sim" se a média >= 0.5 (maioria dos meses foi Sim)
-    const avgProdutividade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_produtividade), 0) / avaliacoesFiltradas.length;
-    const avgQualidade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_qualidade), 0) / avaliacoesFiltradas.length;
-    const avgChaveComportamento = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_comportamento), 0) / avaliacoesFiltradas.length;
-    const avgChaveHabilidades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_habilidades), 0) / avaliacoesFiltradas.length;
-    const avgChaveAtitudes = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_atitudes), 0) / avaliacoesFiltradas.length;
-    const avgChaveValores = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_valores), 0) / avaliacoesFiltradas.length;
-
-    const produtividade_sim = avgProdutividade >= 0.5;
-    const qualidade_sim = avgQualidade >= 0.5;
-    const comportamento_sim = avgChaveComportamento >= 0.5;
-    const habilidades_sim = avgChaveHabilidades >= 0.5;
-    const atitudes_sim = avgChaveAtitudes >= 0.5;
-    const valores_sim = avgChaveValores >= 0.5;
+    // FAIXA 2
+    const produtividade_sim = Number(avaliacao.faixa2_produtividade) >= 1;
+    const qualidade_sim = Number(avaliacao.faixa2_qualidade) >= 1;
+    const comportamento_sim = Number(avaliacao.faixa2_chave_comportamento) >= 1;
+    const habilidades_sim = Number(avaliacao.faixa2_chave_habilidades) >= 1;
+    const atitudes_sim = Number(avaliacao.faixa2_chave_atitudes) >= 1;
+    const valores_sim = Number(avaliacao.faixa2_chave_valores) >= 1;
 
     const percentual_faixa2 = 
       (produtividade_sim ? 0.30 : 0) +
@@ -179,39 +165,28 @@ export default function Calculo() {
       (atitudes_sim ? 0.10 : 0) +
       (valores_sim ? 0.10 : 0);
 
-    // FAIXA 3 - Resultado Cliente/Projeto (valores binários)
-    const avgNpsProjeto = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_nps_projeto), 0) / avaliacoesFiltradas.length;
-    const avgBacklog = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_backlog), 0) / avaliacoesFiltradas.length;
-    const avgPrioridades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_prioridades), 0) / avaliacoesFiltradas.length;
-    const avgSla = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_sla), 0) / avaliacoesFiltradas.length;
-
-    const nps_projeto_sim = avgNpsProjeto >= 0.5;
-    const backlog_sim = avgBacklog >= 0.5;
-    const prioridades_sim = avgPrioridades >= 0.5;
-    const sla_sim = avgSla >= 0.5;
+    // FAIXA 3
+    const nps_projeto_sim = Number(avaliacao.faixa3_nps_projeto) >= 1;
+    const backlog_sim = Number(avaliacao.faixa3_backlog) >= 1;
+    const prioridades_sim = Number(avaliacao.faixa3_prioridades) >= 1;
+    const sla_sim = Number(avaliacao.faixa3_sla) >= 1;
 
     const percentual_faixa3 = 
       (nps_projeto_sim ? 0.40 : 0) +
       (prioridades_sim ? 0.30 : 0) +
       (backlog_sim ? 0.30 : 0);
-    // SLA é informativo (0%)
 
-    // FAIXA 4 - Resultado Empresa (dados da tabela registros_globais)
-    const mesesDoFiltro = avaliacoesFiltradas.map(a => a.mes);
-    const registrosGlobaisFiltrados = registrosGlobais.filter(r => mesesDoFiltro.includes(r.mes));
+    // FAIXA 4 - buscar do registro global do mês
+    const registroGlobal = registrosGlobais.find(r => r.mes === avaliacao.mes);
     
     let nps_global_sim = false;
     let churn_sim = false;
     let uso_ava_sim = false;
     
-    if (registrosGlobaisFiltrados.length > 0) {
-      const avgNpsGlobal = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_nps_global), 0) / registrosGlobaisFiltrados.length;
-      const avgChurn = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_churn), 0) / registrosGlobaisFiltrados.length;
-      const avgUsoAva = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_uso_ava), 0) / registrosGlobaisFiltrados.length;
-      
-      nps_global_sim = avgNpsGlobal >= 0.5;
-      churn_sim = avgChurn >= 0.5;
-      uso_ava_sim = avgUsoAva >= 0.5;
+    if (registroGlobal) {
+      nps_global_sim = Number(registroGlobal.faixa4_nps_global) >= 1;
+      churn_sim = Number(registroGlobal.faixa4_churn) >= 1;
+      uso_ava_sim = Number(registroGlobal.faixa4_uso_ava) >= 1;
     }
 
     const percentual_faixa4 = 
@@ -219,28 +194,22 @@ export default function Calculo() {
       (churn_sim ? 0.30 : 0) +
       (uso_ava_sim ? 0.30 : 0);
 
-    // Passo 4 - Valor Financeiro por Faixa
     const valor_faixa2 = faixa2_max * percentual_faixa2;
     const valor_faixa3 = faixa3_max * percentual_faixa3;
     const valor_faixa4 = faixa4_max * percentual_faixa4;
-
-    // Passo 5 - Prêmio Final
     const premio_valor = elegivel ? (valor_faixa2 + valor_faixa3 + valor_faixa4) : 0;
 
     return {
       elegivel,
-      premio_maximo,
+      premio_valor,
       valor_faixa2,
       valor_faixa3,
       valor_faixa4,
-      premio_valor,
-      salario_base,
-      status: 'em_aberto',
       detalhes: {
         faixa1: {
-          ausencias: totalAusencias,
-          pendencias: totalPendencias,
-          notificacoes: totalNotificacoes,
+          ausencias: avaliacao.faixa1_ausencias,
+          pendencias: avaliacao.faixa1_pendencias,
+          notificacoes: avaliacao.faixa1_notificacoes,
         },
         faixa2: {
           produtividade: produtividade_sim,
@@ -265,8 +234,161 @@ export default function Calculo() {
           percentual: percentual_faixa4 * 100,
         },
       },
+    };
+  };
+
+  // Calcular resultado
+  const resultado = useMemo((): ResultadoCalculo | null => {
+    if (avaliacoesFiltradas.length === 0 || !prestadorSelecionado) return null;
+
+    const salario_base = Number(prestadorSelecionado.salario_fixo);
+    const premio_maximo = salario_base * 0.8;
+
+    // Para visualização SEMESTRAL: soma os prêmios de cada mês
+    if (selectedPeriodo === 'semestral_1' || selectedPeriodo === 'semestral_2') {
+      let totalPremio = 0;
+      let totalFaixa2 = 0;
+      let totalFaixa3 = 0;
+      let totalFaixa4 = 0;
+      let totalAusencias = 0;
+      let totalPendencias = 0;
+      let totalNotificacoes = 0;
+
+      // Calcular para cada mês e somar
+      avaliacoesFiltradas.forEach(avaliacao => {
+        const resultadoMes = calcularResultadoMes(avaliacao, salario_base);
+        totalPremio += resultadoMes.premio_valor;
+        totalFaixa2 += resultadoMes.valor_faixa2;
+        totalFaixa3 += resultadoMes.valor_faixa3;
+        totalFaixa4 += resultadoMes.valor_faixa4;
+        totalAusencias += avaliacao.faixa1_ausencias;
+        totalPendencias += avaliacao.faixa1_pendencias;
+        totalNotificacoes += avaliacao.faixa1_notificacoes;
+      });
+
+      // Elegibilidade geral: considerar se tinha pelo menos 1 mês elegível
+      const mesesElegiveis = avaliacoesFiltradas.filter(a => 
+        a.faixa1_ausencias < 3 && a.faixa1_pendencias === 0 && a.faixa1_notificacoes === 0
+      ).length;
+      const elegivel = mesesElegiveis > 0;
+
+      // Para detalhes, usar médias para exibição
+      const avgProdutividade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_produtividade), 0) / avaliacoesFiltradas.length;
+      const avgQualidade = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_qualidade), 0) / avaliacoesFiltradas.length;
+      const avgChaveComportamento = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_comportamento), 0) / avaliacoesFiltradas.length;
+      const avgChaveHabilidades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_habilidades), 0) / avaliacoesFiltradas.length;
+      const avgChaveAtitudes = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_atitudes), 0) / avaliacoesFiltradas.length;
+      const avgChaveValores = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa2_chave_valores), 0) / avaliacoesFiltradas.length;
+
+      const produtividade_sim = avgProdutividade >= 0.5;
+      const qualidade_sim = avgQualidade >= 0.5;
+      const comportamento_sim = avgChaveComportamento >= 0.5;
+      const habilidades_sim = avgChaveHabilidades >= 0.5;
+      const atitudes_sim = avgChaveAtitudes >= 0.5;
+      const valores_sim = avgChaveValores >= 0.5;
+
+      const percentual_faixa2 = 
+        (produtividade_sim ? 0.30 : 0) +
+        (qualidade_sim ? 0.30 : 0) +
+        (comportamento_sim ? 0.10 : 0) +
+        (habilidades_sim ? 0.10 : 0) +
+        (atitudes_sim ? 0.10 : 0) +
+        (valores_sim ? 0.10 : 0);
+
+      const avgNpsProjeto = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_nps_projeto), 0) / avaliacoesFiltradas.length;
+      const avgBacklog = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_backlog), 0) / avaliacoesFiltradas.length;
+      const avgPrioridades = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_prioridades), 0) / avaliacoesFiltradas.length;
+      const avgSla = avaliacoesFiltradas.reduce((sum, a) => sum + Number(a.faixa3_sla), 0) / avaliacoesFiltradas.length;
+
+      const nps_projeto_sim = avgNpsProjeto >= 0.5;
+      const backlog_sim = avgBacklog >= 0.5;
+      const prioridades_sim = avgPrioridades >= 0.5;
+      const sla_sim = avgSla >= 0.5;
+
+      const percentual_faixa3 = 
+        (nps_projeto_sim ? 0.40 : 0) +
+        (prioridades_sim ? 0.30 : 0) +
+        (backlog_sim ? 0.30 : 0);
+
+      const mesesDoFiltro = avaliacoesFiltradas.map(a => a.mes);
+      const registrosGlobaisFiltrados = registrosGlobais.filter(r => mesesDoFiltro.includes(r.mes));
+      
+      let nps_global_sim = false;
+      let churn_sim = false;
+      let uso_ava_sim = false;
+      
+      if (registrosGlobaisFiltrados.length > 0) {
+        const avgNpsGlobal = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_nps_global), 0) / registrosGlobaisFiltrados.length;
+        const avgChurn = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_churn), 0) / registrosGlobaisFiltrados.length;
+        const avgUsoAva = registrosGlobaisFiltrados.reduce((sum, r) => sum + Number(r.faixa4_uso_ava), 0) / registrosGlobaisFiltrados.length;
+        
+        nps_global_sim = avgNpsGlobal >= 0.5;
+        churn_sim = avgChurn >= 0.5;
+        uso_ava_sim = avgUsoAva >= 0.5;
+      }
+
+      const percentual_faixa4 = 
+        (nps_global_sim ? 0.40 : 0) +
+        (churn_sim ? 0.30 : 0) +
+        (uso_ava_sim ? 0.30 : 0);
+
+      return {
+        elegivel,
+        premio_maximo,
+        valor_faixa2: totalFaixa2,
+        valor_faixa3: totalFaixa3,
+        valor_faixa4: totalFaixa4,
+        premio_valor: totalPremio,
+        salario_base,
+        status: 'em_aberto',
+        detalhes: {
+          faixa1: {
+            ausencias: totalAusencias,
+            pendencias: totalPendencias,
+            notificacoes: totalNotificacoes,
+          },
+          faixa2: {
+            produtividade: produtividade_sim,
+            qualidade: qualidade_sim,
+            comportamento: comportamento_sim,
+            habilidades: habilidades_sim,
+            atitudes: atitudes_sim,
+            valores: valores_sim,
+            percentual: percentual_faixa2 * 100,
+          },
+          faixa3: {
+            nps_projeto: nps_projeto_sim,
+            backlog: backlog_sim,
+            prioridades: prioridades_sim,
+            sla: sla_sim,
+            percentual: percentual_faixa3 * 100,
+          },
+          faixa4: {
+            nps_global: nps_global_sim,
+            churn: churn_sim,
+            uso_ava: uso_ava_sim,
+            percentual: percentual_faixa4 * 100,
+          },
+        },
+      } as ResultadoCalculo;
+    }
+
+    // Para visualização MENSAL: calcula apenas o mês selecionado
+    const avaliacao = avaliacoesFiltradas[0];
+    const resultadoMes = calcularResultadoMes(avaliacao, salario_base);
+
+    return {
+      elegivel: resultadoMes.elegivel,
+      premio_maximo,
+      valor_faixa2: resultadoMes.valor_faixa2,
+      valor_faixa3: resultadoMes.valor_faixa3,
+      valor_faixa4: resultadoMes.valor_faixa4,
+      premio_valor: resultadoMes.premio_valor,
+      salario_base,
+      status: 'em_aberto',
+      detalhes: resultadoMes.detalhes,
     } as ResultadoCalculo;
-  }, [avaliacoesFiltradas, prestadorSelecionado, registrosGlobais]);
+  }, [avaliacoesFiltradas, prestadorSelecionado, registrosGlobais, selectedPeriodo]);
 
   // Fator de divisão: quando mensal, divide por 6
   const divisor = selectedPeriodo === 'mensal' ? 6 : 1;
