@@ -272,6 +272,9 @@ export default function Registro() {
         faixa3_backlog: currentAvaliacao.faixa3_backlog,
         faixa3_prioridades: currentAvaliacao.faixa3_prioridades,
         faixa3_sla: currentAvaliacao.faixa3_sla,
+        feedback_comecar_fazer: currentAvaliacao.feedback_comecar_fazer,
+        feedback_continuar_fazer: currentAvaliacao.feedback_continuar_fazer,
+        feedback_parar_fazer: currentAvaliacao.feedback_parar_fazer,
       });
 
       toast({
@@ -362,7 +365,7 @@ export default function Registro() {
     ).toFixed(1);
   };
 
-  const updateField = (field: keyof AvaliacaoMensal, value: number) => {
+  const updateField = (field: keyof AvaliacaoMensal, value: number | string | null) => {
     if (!currentAvaliacao) return;
     setCurrentAvaliacao({ ...currentAvaliacao, [field]: value });
   };
@@ -966,6 +969,8 @@ export default function Registro() {
                     <Textarea 
                       placeholder="Descreva novas ações ou comportamentos que você deve começar a adotar..."
                       className="mt-2 min-h-[100px]"
+                      value={currentAvaliacao.feedback_comecar_fazer || ''}
+                      onChange={(e) => updateField('feedback_comecar_fazer', e.target.value)}
                     />
                   </div>
                   <div>
@@ -973,6 +978,8 @@ export default function Registro() {
                     <Textarea 
                       placeholder="Descreva ações ou comportamentos positivos que você deve manter..."
                       className="mt-2 min-h-[100px]"
+                      value={currentAvaliacao.feedback_continuar_fazer || ''}
+                      onChange={(e) => updateField('feedback_continuar_fazer', e.target.value)}
                     />
                   </div>
                   <div>
@@ -980,6 +987,8 @@ export default function Registro() {
                     <Textarea 
                       placeholder="Descreva ações ou comportamentos que você deve eliminar..."
                       className="mt-2 min-h-[100px]"
+                      value={currentAvaliacao.feedback_parar_fazer || ''}
+                      onChange={(e) => updateField('feedback_parar_fazer', e.target.value)}
                     />
                   </div>
                 </div>
