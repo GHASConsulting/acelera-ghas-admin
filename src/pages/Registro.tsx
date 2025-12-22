@@ -486,14 +486,6 @@ export default function Registro() {
 
                         <div className="flex items-center gap-6">
                           <div className="text-center">
-                            <p className="text-xs text-muted-foreground mb-1">Elegibilidade</p>
-                            <div 
-                              className={`w-4 h-4 rounded-full mx-auto ${
-                                calcularElegibilidade(avaliacao) ? 'bg-green-500' : 'bg-red-500'
-                              }`}
-                            />
-                          </div>
-                          <div className="text-center">
                             <p className="text-xs text-muted-foreground mb-1">Faixa 2</p>
                             <p className="text-lg font-bold text-primary">
                               {calcularScoreFaixa2(avaliacao)}%
@@ -579,11 +571,6 @@ export default function Registro() {
                       Define se o prestador está elegível para premiação
                     </p>
                   </div>
-                  <div 
-                    className={`ml-auto w-5 h-5 rounded-full ${
-                      calcularElegibilidade(currentAvaliacao) ? 'bg-green-500' : 'bg-red-500'
-                    }`}
-                  />
                 </div>
 
                 <div className="grid grid-cols-3 gap-6 mt-4">
