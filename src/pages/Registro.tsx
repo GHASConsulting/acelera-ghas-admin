@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -948,6 +949,41 @@ export default function Registro() {
                   </div>
                 );
               })()}
+
+              {/* Campos de Feedback */}
+              <div className="faixa-card">
+                <div className="faixa-header">
+                  <span className="faixa-number">📝</span>
+                  <div>
+                    <h3 className="faixa-title">Feedback e Desenvolvimento</h3>
+                    <p className="text-sm text-muted-foreground">Reflexões para melhoria contínua</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6 mt-4">
+                  <div>
+                    <Label className="input-label">O que devo Começar a Fazer</Label>
+                    <Textarea 
+                      placeholder="Descreva novas ações ou comportamentos que você deve começar a adotar..."
+                      className="mt-2 min-h-[100px]"
+                    />
+                  </div>
+                  <div>
+                    <Label className="input-label">O que devo Continuar a Fazer</Label>
+                    <Textarea 
+                      placeholder="Descreva ações ou comportamentos positivos que você deve manter..."
+                      className="mt-2 min-h-[100px]"
+                    />
+                  </div>
+                  <div>
+                    <Label className="input-label">O que devo Parar de Fazer</Label>
+                    <Textarea 
+                      placeholder="Descreva ações ou comportamentos que você deve eliminar..."
+                      className="mt-2 min-h-[100px]"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
