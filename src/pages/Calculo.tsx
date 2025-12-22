@@ -141,10 +141,11 @@ export default function Calculo() {
     valor_faixa4: number;
     detalhes: ResultadoCalculo['detalhes'];
   } => {
-    const premio_maximo = salario_base * 0.8;
-    const faixa2_max = premio_maximo * 0.4;
-    const faixa3_max = premio_maximo * 0.4;
-    const faixa4_max = premio_maximo * 0.2;
+    const premio_maximo_semestral = salario_base * 0.8;
+    // Teto MENSAL = valor semestral / 6
+    const faixa2_max_mensal = (premio_maximo_semestral * 0.4) / 6;
+    const faixa3_max_mensal = (premio_maximo_semestral * 0.4) / 6;
+    const faixa4_max_mensal = (premio_maximo_semestral * 0.2) / 6;
 
     // FAIXA 1 - Elegibilidade
     const elegivel = avaliacao.faixa1_ausencias < 3 && avaliacao.faixa1_pendencias === 0 && avaliacao.faixa1_notificacoes === 0;
@@ -194,9 +195,9 @@ export default function Calculo() {
       (churn_sim ? 0.30 : 0) +
       (uso_ava_sim ? 0.30 : 0);
 
-    const valor_faixa2 = faixa2_max * percentual_faixa2;
-    const valor_faixa3 = faixa3_max * percentual_faixa3;
-    const valor_faixa4 = faixa4_max * percentual_faixa4;
+    const valor_faixa2 = faixa2_max_mensal * percentual_faixa2;
+    const valor_faixa3 = faixa3_max_mensal * percentual_faixa3;
+    const valor_faixa4 = faixa4_max_mensal * percentual_faixa4;
     const premio_valor = elegivel ? (valor_faixa2 + valor_faixa3 + valor_faixa4) : 0;
 
     return {
