@@ -886,7 +886,7 @@ export default function Registro() {
                     <div className="faixa-header">
                       <span className="faixa-number">4</span>
                       <div>
-                        <h3 className="faixa-title">Resultado Empresa (Peso 30%)</h3>
+                        <h3 className="faixa-title">Resultado Empresa (Peso 20%)</h3>
                         <p className="text-sm text-muted-foreground">Indicadores globais da empresa</p>
                       </div>
                       <TooltipProvider>
