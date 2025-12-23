@@ -442,7 +442,7 @@ export default function Administracao() {
 
               <div className="input-group">
                 <Label htmlFor="salario" className="input-label">
-                  Salário Fixo *
+                  Vencimentos *
                 </Label>
                 <Input
                   id="salario"
