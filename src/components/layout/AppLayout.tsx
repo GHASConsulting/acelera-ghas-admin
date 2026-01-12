@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, ClipboardList, BarChart3, Calculator, FileText, Settings, Globe, LogOut } from 'lucide-react';
+import { Users, ClipboardList, BarChart3, Calculator, FileText, Settings, Globe, LogOut, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +21,11 @@ const navigation = [{
   name: 'Registro Global',
   href: '/registro-global',
   icon: Globe,
+  requiresGhas: true
+}, {
+  name: 'Feedback GHAS',
+  href: '/feedback-ghas',
+  icon: MessageSquare,
   requiresGhas: true
 }, {
   name: 'Cálculo',

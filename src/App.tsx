@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Administracao from "./pages/Administracao";
 import Registro from "./pages/Registro";
 import RegistroGlobal from "./pages/RegistroGlobal";
+import FeedbackGhas from "./pages/FeedbackGhas";
 import Calculo from "./pages/Calculo";
 import NotFound from "./pages/NotFound";
 
@@ -55,6 +56,14 @@ const App = () => (
               element={
                 <ProtectedGhasRoute>
                   <RegistroGlobal />
+                </ProtectedGhasRoute>
+              }
+            />
+            <Route
+              path="/feedback-ghas"
+              element={
+                <ProtectedGhasRoute>
+                  <FeedbackGhas />
                 </ProtectedGhasRoute>
               }
             />

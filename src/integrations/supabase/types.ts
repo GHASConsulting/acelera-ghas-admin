@@ -113,6 +113,57 @@ export type Database = {
           },
         ]
       }
+      feedbacks_ghas: {
+        Row: {
+          atualizado_em: string
+          autor_id: string
+          criado_em: string
+          destinatario_id: string
+          feedback_comecar_fazer: string | null
+          feedback_continuar_fazer: string | null
+          feedback_parar_fazer: string | null
+          id: string
+          mes: string
+        }
+        Insert: {
+          atualizado_em?: string
+          autor_id: string
+          criado_em?: string
+          destinatario_id: string
+          feedback_comecar_fazer?: string | null
+          feedback_continuar_fazer?: string | null
+          feedback_parar_fazer?: string | null
+          id?: string
+          mes: string
+        }
+        Update: {
+          atualizado_em?: string
+          autor_id?: string
+          criado_em?: string
+          destinatario_id?: string
+          feedback_comecar_fazer?: string | null
+          feedback_continuar_fazer?: string | null
+          feedback_parar_fazer?: string | null
+          id?: string
+          mes?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_ghas_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "prestadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedbacks_ghas_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "prestadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prestadores: {
         Row: {
           atualizado_em: string
