@@ -28,6 +28,10 @@ const navigation = [{
   icon: MessageSquare,
   requiresGhas: true
 }, {
+  name: 'Meus Feedbacks',
+  href: '/feedback',
+  icon: MessageSquare
+}, {
   name: 'Cálculo',
   href: '/calculo',
   icon: Calculator
