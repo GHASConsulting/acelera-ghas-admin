@@ -176,10 +176,13 @@ export default function Calculo() {
   };
 
   // Função para calcular resultado de um único mês
+  // Nota: Faixa 1 reduz o SEMESTRE, não o mês. Então calculamos valores brutos mensais
+  // e a redução é aplicada ao total semestral
   const calcularResultadoMes = (avaliacao: AvaliacaoMensal, salario_base: number): {
     elegivel: boolean;
     reducao_faixa1: number;
-    premio_valor: number;
+    premio_bruto: number; // Valor antes da redução (mensal)
+    premio_valor: number; // Valor após redução (mensal, proporcional)
     valor_faixa2: number;
     valor_faixa3: number;
     valor_faixa4: number;
@@ -187,19 +190,18 @@ export default function Calculo() {
   } => {
     // Prêmio Máximo Semestral = 40% dos Vencimentos (80% anual dividido em 2 semestres)
     const premio_maximo_semestral = salario_base * 0.4;
-    // Teto MENSAL = valor semestral / 6
+    // Teto MENSAL = valor semestral / 6 (Faixas 2, 3, 4 são mensais)
     const faixa2_max_mensal = (premio_maximo_semestral * 0.4) / 6;
     const faixa3_max_mensal = (premio_maximo_semestral * 0.4) / 6;
     const faixa4_max_mensal = (premio_maximo_semestral * 0.2) / 6;
 
-    // FAIXA 1 - Reduções
+    // FAIXA 1 - Reduções (se aplica ao SEMESTRE, não ao mês)
     const reducoes = calcularReducaoFaixa1(
       avaliacao.faixa1_ausencias,
       avaliacao.faixa1_pendencias,
       avaliacao.faixa1_notificacoes
     );
     const elegivel = reducoes.reducao_total < 100;
-    const fator_reducao = (100 - reducoes.reducao_total) / 100; // 1 = sem redução, 0 = 100% redução
 
     // FAIXA 2
     const produtividade_sim = Number(avaliacao.faixa2_produtividade) >= 1;
@@ -250,13 +252,18 @@ export default function Calculo() {
     const valor_faixa3 = faixa3_max_mensal * percentual_faixa3;
     const valor_faixa4 = faixa4_max_mensal * percentual_faixa4;
     
-    // Aplicar redução da Faixa 1 ao prêmio total
+    // Valor bruto mensal (antes da redução da Faixa 1)
     const premio_bruto = valor_faixa2 + valor_faixa3 + valor_faixa4;
+    
+    // A redução da Faixa 1 é sobre o SEMESTRE
+    // Para visualização mensal, aplicamos proporcionalmente ao mês
+    const fator_reducao = (100 - reducoes.reducao_total) / 100;
     const premio_valor = premio_bruto * fator_reducao;
 
     return {
       elegivel,
       reducao_faixa1: reducoes.reducao_total,
+      premio_bruto,
       premio_valor,
       valor_faixa2,
       valor_faixa3,
