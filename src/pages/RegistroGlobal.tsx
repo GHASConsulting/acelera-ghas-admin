@@ -37,12 +37,11 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal, useDeleteRegistroGlobal } from '@/hooks/useAvaliacoes';
+import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal, useDeleteRegistroGlobal, RegistroGlobalComPrestador } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
-import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
-type RegistroGlobal = Tables<'registros_globais'>;
+type RegistroGlobal = RegistroGlobalComPrestador;
 
 const MESES_AVALIACAO = [
   'Janeiro/2026',
@@ -528,6 +527,7 @@ export default function RegistroGlobalPage() {
                 <Lock className="w-4 h-4" />
                 <span className="text-sm">
                   Liberado em {new Date(currentRegistro.liberado_em).toLocaleDateString('pt-BR')}
+                  {currentRegistro.registrado_por?.nome && ` por ${currentRegistro.registrado_por.nome}`}
                 </span>
               </div>
             )}

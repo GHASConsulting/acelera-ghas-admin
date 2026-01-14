@@ -45,13 +45,13 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { usePrestadores } from '@/hooks/usePrestadores';
-import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao, useDeleteAvaliacao } from '@/hooks/useAvaliacoes';
+import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao, useDeleteAvaliacao, AvaliacaoComAvaliador } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { useFeedbacksGhas } from '@/hooks/useFeedbacksGhas';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
-type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
+type AvaliacaoMensal = AvaliacaoComAvaliador;
 type Prestador = Tables<'prestadores'>;
 
 const MESES_AVALIACAO = [
@@ -1048,6 +1048,7 @@ export default function Registro() {
                 <Lock className="w-4 h-4" />
                 <span className="text-sm">
                   Liberado em {new Date(currentAvaliacao.liberado_em).toLocaleDateString('pt-BR')}
+                  {currentAvaliacao.avaliador?.nome && ` por ${currentAvaliacao.avaliador.nome}`}
                 </span>
               </div>
             )}
