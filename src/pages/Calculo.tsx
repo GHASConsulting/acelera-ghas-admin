@@ -553,8 +553,12 @@ export default function Calculo() {
                 {/* Cards de Resultado */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Prêmio Máximo</p>
-                    <p className="text-2xl font-bold text-foreground">{formatCurrency(resultado.premio_maximo)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Prêmio Máximo {selectedPeriodo === 'mensal' ? '(Anual)' : '(Semestral)'}
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatCurrency(selectedPeriodo === 'mensal' ? resultado.premio_maximo : resultado.premio_maximo / 2)}
+                    </p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 text-center">
                     <p className="text-xs text-muted-foreground mb-1">Faixa 2 (40%){selectedPeriodo === 'mensal' && ' /6'}</p>
