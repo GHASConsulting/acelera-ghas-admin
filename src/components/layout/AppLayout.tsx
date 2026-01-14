@@ -35,14 +35,6 @@ const navigation = [{
   name: 'Cálculo',
   href: '/calculo',
   icon: Calculator
-}, {
-  name: 'Simulador',
-  href: '/simulador',
-  icon: BarChart3
-}, {
-  name: 'Relatórios',
-  href: '/relatorios',
-  icon: FileText
 }];
 export function AppLayout({
   children
