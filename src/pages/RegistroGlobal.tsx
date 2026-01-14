@@ -431,14 +431,15 @@ export default function RegistroGlobalPage() {
                       value={String(currentRegistro.faixa4_nps_global)}
                       onValueChange={(v) => updateField('faixa4_nps_global', Number(v))}
                       className="flex gap-4"
+                      disabled={!isEditing}
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="1" id="nps-sim" />
-                        <Label htmlFor="nps-sim" className="cursor-pointer">Sim</Label>
+                        <RadioGroupItem value="1" id="nps-sim" disabled={!isEditing} />
+                        <Label htmlFor="nps-sim" className={isEditing ? "cursor-pointer" : "cursor-default text-muted-foreground"}>Sim</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="0" id="nps-nao" />
-                        <Label htmlFor="nps-nao" className="cursor-pointer">Não</Label>
+                        <RadioGroupItem value="0" id="nps-nao" disabled={!isEditing} />
+                        <Label htmlFor="nps-nao" className={isEditing ? "cursor-pointer" : "cursor-default text-muted-foreground"}>Não</Label>
                       </div>
                     </RadioGroup>
                   </div>
@@ -462,14 +463,15 @@ export default function RegistroGlobalPage() {
                       value={String(currentRegistro.faixa4_churn)}
                       onValueChange={(v) => updateField('faixa4_churn', Number(v))}
                       className="flex gap-4"
+                      disabled={!isEditing}
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="1" id="churn-sim" />
-                        <Label htmlFor="churn-sim" className="cursor-pointer">Sim</Label>
+                        <RadioGroupItem value="1" id="churn-sim" disabled={!isEditing} />
+                        <Label htmlFor="churn-sim" className={isEditing ? "cursor-pointer" : "cursor-default text-muted-foreground"}>Sim</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="0" id="churn-nao" />
-                        <Label htmlFor="churn-nao" className="cursor-pointer">Não</Label>
+                        <RadioGroupItem value="0" id="churn-nao" disabled={!isEditing} />
+                        <Label htmlFor="churn-nao" className={isEditing ? "cursor-pointer" : "cursor-default text-muted-foreground"}>Não</Label>
                       </div>
                     </RadioGroup>
                   </div>
@@ -493,14 +495,15 @@ export default function RegistroGlobalPage() {
                       value={String(currentRegistro.faixa4_uso_ava)}
                       onValueChange={(v) => updateField('faixa4_uso_ava', Number(v))}
                       className="flex gap-4"
+                      disabled={!isEditing}
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="1" id="ava-sim" />
-                        <Label htmlFor="ava-sim" className="cursor-pointer">Sim</Label>
+                        <RadioGroupItem value="1" id="ava-sim" disabled={!isEditing} />
+                        <Label htmlFor="ava-sim" className={isEditing ? "cursor-pointer" : "cursor-default text-muted-foreground"}>Sim</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="0" id="ava-nao" />
-                        <Label htmlFor="ava-nao" className="cursor-pointer">Não</Label>
+                        <RadioGroupItem value="0" id="ava-nao" disabled={!isEditing} />
+                        <Label htmlFor="ava-nao" className={isEditing ? "cursor-pointer" : "cursor-default text-muted-foreground"}>Não</Label>
                       </div>
                     </RadioGroup>
                   </div>
