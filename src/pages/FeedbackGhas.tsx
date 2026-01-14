@@ -272,7 +272,7 @@ export default function FeedbackGhasPage() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="page-title">Feedback GHAS</h1>
+              <h1 className="page-title">Avaliação GHAS</h1>
               <p className="page-subtitle">
                 Registre feedbacks de desenvolvimento para os prestadores
               </p>
