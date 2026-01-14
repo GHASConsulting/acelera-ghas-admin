@@ -313,9 +313,9 @@ export default function Calculo() {
     const premio_maximo_anual = salario_base * 0.8;
     const premio_maximo_semestral = salario_base * 0.4;
 
-    // Para visualização SEMESTRAL: soma os prêmios de cada mês
+    // Para visualização SEMESTRAL: soma os prêmios de cada mês E aplica redução da Faixa 1
     if (selectedPeriodo === 'semestral_1' || selectedPeriodo === 'semestral_2') {
-      let totalPremio = 0;
+      let totalPremioBruto = 0;
       let totalFaixa2 = 0;
       let totalFaixa3 = 0;
       let totalFaixa4 = 0;
@@ -326,10 +326,10 @@ export default function Calculo() {
       let totalReducaoPendencias = 0;
       let totalReducaoNotificacoes = 0;
 
-      // Calcular para cada mês e somar
+      // Calcular para cada mês e somar valores BRUTOS (sem redução)
       avaliacoesFiltradas.forEach(avaliacao => {
         const resultadoMes = calcularResultadoMes(avaliacao, salario_base);
-        totalPremio += resultadoMes.premio_valor;
+        totalPremioBruto += resultadoMes.premio_bruto; // Valor bruto, sem redução
         totalFaixa2 += resultadoMes.valor_faixa2;
         totalFaixa3 += resultadoMes.valor_faixa3;
         totalFaixa4 += resultadoMes.valor_faixa4;
@@ -408,22 +408,27 @@ export default function Calculo() {
         (churn_sim ? 0.30 : 0) +
         (uso_ava_sim ? 0.30 : 0);
 
-      // Calcular redução média para exibição semestral
-      const avgReducaoTotal = avaliacoesFiltradas.length > 0
-        ? avaliacoesFiltradas.reduce((sum, a) => {
-            const r = calcularReducaoFaixa1(a.faixa1_ausencias, a.faixa1_pendencias, a.faixa1_notificacoes);
-            return sum + r.reducao_total;
-          }, 0) / avaliacoesFiltradas.length
-        : 0;
+      // Calcular redução TOTAL do semestre (soma das reduções de cada mês, limitado a 100%)
+      const reducaoTotalSemestre = Math.min(
+        avaliacoesFiltradas.reduce((sum, a) => {
+          const r = calcularReducaoFaixa1(a.faixa1_ausencias, a.faixa1_pendencias, a.faixa1_notificacoes);
+          return sum + r.reducao_total;
+        }, 0),
+        100
+      );
+
+      // Aplicar a redução da Faixa 1 ao total bruto do semestre
+      const fatorReducaoSemestral = (100 - reducaoTotalSemestre) / 100;
+      const totalPremioFinal = totalPremioBruto * fatorReducaoSemestral;
 
       return {
         elegivel,
-        reducao_faixa1: avgReducaoTotal,
+        reducao_faixa1: reducaoTotalSemestre,
         premio_maximo: premio_maximo_anual,
         valor_faixa2: totalFaixa2,
         valor_faixa3: totalFaixa3,
         valor_faixa4: totalFaixa4,
-        premio_valor: totalPremio,
+        premio_valor: totalPremioFinal,
         salario_base,
         status: 'em_aberto',
         detalhes: {
@@ -434,7 +439,7 @@ export default function Calculo() {
             reducao_ausencias: totalReducaoAusencias / avaliacoesFiltradas.length,
             reducao_pendencias: totalReducaoPendencias / avaliacoesFiltradas.length,
             reducao_notificacoes: totalReducaoNotificacoes / avaliacoesFiltradas.length,
-            reducao_total: avgReducaoTotal,
+            reducao_total: reducaoTotalSemestre,
           },
           faixa2: {
             produtividade: produtividade_sim,
@@ -462,7 +467,7 @@ export default function Calculo() {
       } as ResultadoCalculo;
     }
 
-    // Para visualização MENSAL: calcula apenas o mês selecionado
+    // Para visualização MENSAL: calcula apenas o mês selecionado SEM aplicar redução da Faixa 1
     const avaliacao = avaliacoesFiltradas[0];
     const resultadoMes = calcularResultadoMes(avaliacao, salario_base);
 
@@ -473,7 +478,7 @@ export default function Calculo() {
       valor_faixa2: resultadoMes.valor_faixa2,
       valor_faixa3: resultadoMes.valor_faixa3,
       valor_faixa4: resultadoMes.valor_faixa4,
-      premio_valor: resultadoMes.premio_valor,
+      premio_valor: resultadoMes.premio_bruto, // Usar valor BRUTO (sem redução) na visão mensal
       salario_base,
       status: 'em_aberto',
       detalhes: resultadoMes.detalhes,
