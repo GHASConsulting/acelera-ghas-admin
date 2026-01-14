@@ -14,9 +14,7 @@ import { usePrestadores } from '@/hooks/usePrestadores';
 import { useAvaliacoes, useRegistrosGlobais } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { Tables } from '@/integrations/supabase/types';
-import { Progress } from '@/components/ui/progress';
 
-type Prestador = Tables<'prestadores'>;
 type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
 type MesAvaliacao = string;
 
@@ -25,6 +23,7 @@ type StatusCalculo = 'em_aberto' | 'simulado' | 'fechado';
 
 interface ResultadoCalculo {
   elegivel: boolean;
+  reducao_faixa1: number; // Percentual de redução da Faixa 1 (0-100)
   premio_maximo: number;
   valor_faixa2: number;
   valor_faixa3: number;
@@ -37,6 +36,10 @@ interface ResultadoCalculo {
       ausencias: number;
       pendencias: number;
       notificacoes: number;
+      reducao_ausencias: number;
+      reducao_pendencias: number;
+      reducao_notificacoes: number;
+      reducao_total: number;
     };
     faixa2: {
       produtividade: boolean;
@@ -142,9 +145,40 @@ export default function Calculo() {
     return [];
   }, [avaliacoesDisponiveis, selectedPeriodo, selectedMes]);
 
+  // Função para calcular redução da Faixa 1
+  const calcularReducaoFaixa1 = (ausencias: number, pendencias: number, notificacoes: number): {
+    reducao_ausencias: number;
+    reducao_pendencias: number;
+    reducao_notificacoes: number;
+    reducao_total: number;
+  } => {
+    // Ausências: 0=0%, 1=30%, 2=70%, 3+=100%
+    let reducao_ausencias = 0;
+    if (ausencias === 1) reducao_ausencias = 30;
+    else if (ausencias === 2) reducao_ausencias = 70;
+    else if (ausencias >= 3) reducao_ausencias = 100;
+
+    // Pendências: cada pendência = 10%, máximo 100%
+    const reducao_pendencias = Math.min(pendencias * 10, 100);
+
+    // Notificações: 0=0%, 1+=100%
+    const reducao_notificacoes = notificacoes >= 1 ? 100 : 0;
+
+    // Redução total é a soma, limitada a 100%
+    const reducao_total = Math.min(reducao_ausencias + reducao_pendencias + reducao_notificacoes, 100);
+
+    return {
+      reducao_ausencias,
+      reducao_pendencias,
+      reducao_notificacoes,
+      reducao_total,
+    };
+  };
+
   // Função para calcular resultado de um único mês
   const calcularResultadoMes = (avaliacao: AvaliacaoMensal, salario_base: number): {
     elegivel: boolean;
+    reducao_faixa1: number;
     premio_valor: number;
     valor_faixa2: number;
     valor_faixa3: number;
@@ -158,8 +192,14 @@ export default function Calculo() {
     const faixa3_max_mensal = (premio_maximo_semestral * 0.4) / 6;
     const faixa4_max_mensal = (premio_maximo_semestral * 0.2) / 6;
 
-    // FAIXA 1 - Elegibilidade
-    const elegivel = avaliacao.faixa1_ausencias < 3 && avaliacao.faixa1_pendencias === 0 && avaliacao.faixa1_notificacoes === 0;
+    // FAIXA 1 - Reduções
+    const reducoes = calcularReducaoFaixa1(
+      avaliacao.faixa1_ausencias,
+      avaliacao.faixa1_pendencias,
+      avaliacao.faixa1_notificacoes
+    );
+    const elegivel = reducoes.reducao_total < 100;
+    const fator_reducao = (100 - reducoes.reducao_total) / 100; // 1 = sem redução, 0 = 100% redução
 
     // FAIXA 2
     const produtividade_sim = Number(avaliacao.faixa2_produtividade) >= 1;
@@ -209,10 +249,14 @@ export default function Calculo() {
     const valor_faixa2 = faixa2_max_mensal * percentual_faixa2;
     const valor_faixa3 = faixa3_max_mensal * percentual_faixa3;
     const valor_faixa4 = faixa4_max_mensal * percentual_faixa4;
-    const premio_valor = elegivel ? (valor_faixa2 + valor_faixa3 + valor_faixa4) : 0;
+    
+    // Aplicar redução da Faixa 1 ao prêmio total
+    const premio_bruto = valor_faixa2 + valor_faixa3 + valor_faixa4;
+    const premio_valor = premio_bruto * fator_reducao;
 
     return {
       elegivel,
+      reducao_faixa1: reducoes.reducao_total,
       premio_valor,
       valor_faixa2,
       valor_faixa3,
@@ -222,6 +266,10 @@ export default function Calculo() {
           ausencias: avaliacao.faixa1_ausencias,
           pendencias: avaliacao.faixa1_pendencias,
           notificacoes: avaliacao.faixa1_notificacoes,
+          reducao_ausencias: reducoes.reducao_ausencias,
+          reducao_pendencias: reducoes.reducao_pendencias,
+          reducao_notificacoes: reducoes.reducao_notificacoes,
+          reducao_total: reducoes.reducao_total,
         },
         faixa2: {
           produtividade: produtividade_sim,
@@ -267,6 +315,9 @@ export default function Calculo() {
       let totalAusencias = 0;
       let totalPendencias = 0;
       let totalNotificacoes = 0;
+      let totalReducaoAusencias = 0;
+      let totalReducaoPendencias = 0;
+      let totalReducaoNotificacoes = 0;
 
       // Calcular para cada mês e somar
       avaliacoesFiltradas.forEach(avaliacao => {
@@ -278,12 +329,16 @@ export default function Calculo() {
         totalAusencias += avaliacao.faixa1_ausencias;
         totalPendencias += avaliacao.faixa1_pendencias;
         totalNotificacoes += avaliacao.faixa1_notificacoes;
+        totalReducaoAusencias += resultadoMes.detalhes.faixa1.reducao_ausencias;
+        totalReducaoPendencias += resultadoMes.detalhes.faixa1.reducao_pendencias;
+        totalReducaoNotificacoes += resultadoMes.detalhes.faixa1.reducao_notificacoes;
       });
 
-      // Elegibilidade geral: considerar se tinha pelo menos 1 mês elegível
-      const mesesElegiveis = avaliacoesFiltradas.filter(a => 
-        a.faixa1_ausencias < 3 && a.faixa1_pendencias === 0 && a.faixa1_notificacoes === 0
-      ).length;
+      // Elegibilidade geral: considerar se tinha pelo menos 1 mês com redução < 100%
+      const mesesElegiveis = avaliacoesFiltradas.filter(a => {
+        const reducoes = calcularReducaoFaixa1(a.faixa1_ausencias, a.faixa1_pendencias, a.faixa1_notificacoes);
+        return reducoes.reducao_total < 100;
+      }).length;
       const elegivel = mesesElegiveis > 0;
 
       // Para detalhes, usar médias para exibição
@@ -346,8 +401,17 @@ export default function Calculo() {
         (churn_sim ? 0.30 : 0) +
         (uso_ava_sim ? 0.30 : 0);
 
+      // Calcular redução média para exibição semestral
+      const avgReducaoTotal = avaliacoesFiltradas.length > 0
+        ? avaliacoesFiltradas.reduce((sum, a) => {
+            const r = calcularReducaoFaixa1(a.faixa1_ausencias, a.faixa1_pendencias, a.faixa1_notificacoes);
+            return sum + r.reducao_total;
+          }, 0) / avaliacoesFiltradas.length
+        : 0;
+
       return {
         elegivel,
+        reducao_faixa1: avgReducaoTotal,
         premio_maximo: premio_maximo_anual,
         valor_faixa2: totalFaixa2,
         valor_faixa3: totalFaixa3,
@@ -360,6 +424,10 @@ export default function Calculo() {
             ausencias: totalAusencias,
             pendencias: totalPendencias,
             notificacoes: totalNotificacoes,
+            reducao_ausencias: totalReducaoAusencias / avaliacoesFiltradas.length,
+            reducao_pendencias: totalReducaoPendencias / avaliacoesFiltradas.length,
+            reducao_notificacoes: totalReducaoNotificacoes / avaliacoesFiltradas.length,
+            reducao_total: avgReducaoTotal,
           },
           faixa2: {
             produtividade: produtividade_sim,
@@ -393,6 +461,7 @@ export default function Calculo() {
 
     return {
       elegivel: resultadoMes.elegivel,
+      reducao_faixa1: resultadoMes.reducao_faixa1,
       premio_maximo: premio_maximo_anual,
       valor_faixa2: resultadoMes.valor_faixa2,
       valor_faixa3: resultadoMes.valor_faixa3,
@@ -542,8 +611,17 @@ export default function Calculo() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
+                    {resultado.detalhes.faixa1.reducao_total > 0 && resultado.detalhes.faixa1.reducao_total < 100 && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-600">
+                        Redução: -{resultado.detalhes.faixa1.reducao_total.toFixed(0)}%
+                      </Badge>
+                    )}
                     <Badge variant={resultado.elegivel ? 'success' : 'destructive'}>
-                      {resultado.elegivel ? 'Elegível' : 'Inelegível'}
+                      {resultado.elegivel 
+                        ? resultado.detalhes.faixa1.reducao_total > 0 
+                          ? `Elegível (-${resultado.detalhes.faixa1.reducao_total.toFixed(0)}%)`
+                          : 'Elegível'
+                        : 'Inelegível (-100%)'}
                     </Badge>
                     <Badge variant="outline">
                       Em Aberto
@@ -582,35 +660,61 @@ export default function Calculo() {
                   <span className="faixa-number bg-amber-100 text-amber-700">🥉</span>
                   <div>
                     <h3 className="faixa-title">Faixa 1 – Existir e Ser Confiável</h3>
-                    <p className="text-sm text-muted-foreground">Elegibilidade (eliminatória - não gera valor)</p>
+                    <p className="text-sm text-muted-foreground">Elegibilidade e Reduções (aplicadas ao prêmio final)</p>
                   </div>
-                  <Badge variant={resultado.elegivel ? 'success' : 'destructive'} className="ml-auto">
-                    {resultado.elegivel ? 'Elegível' : 'Inelegível'}
-                  </Badge>
+                  <div className="ml-auto flex items-center gap-2">
+                    {resultado.detalhes.faixa1.reducao_total > 0 && resultado.detalhes.faixa1.reducao_total < 100 && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-600">
+                        -{resultado.detalhes.faixa1.reducao_total.toFixed(0)}%
+                      </Badge>
+                    )}
+                    <Badge variant={resultado.elegivel ? 'success' : 'destructive'}>
+                      {resultado.elegivel 
+                        ? resultado.detalhes.faixa1.reducao_total > 0 
+                          ? `Elegível (-${resultado.detalhes.faixa1.reducao_total.toFixed(0)}%)`
+                          : 'Elegível'
+                        : 'Inelegível (-100%)'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="bg-muted/30 rounded-lg p-4">
                     <p className="text-xs text-muted-foreground mb-1">Ausências sem acordo</p>
-                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.ausencias} dias</p>
-                    <p className={`text-xs ${resultado.detalhes.faixa1.ausencias < 3 ? 'text-success' : 'text-destructive'}`}>
-                      {resultado.detalhes.faixa1.ausencias < 3 ? '✓ OK' : '✗ Inelegível (≥3 dias)'}
+                    <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.ausencias} {resultado.detalhes.faixa1.ausencias === 1 ? 'dia' : 'dias'}</p>
+                    <p className={`text-xs ${resultado.detalhes.faixa1.reducao_ausencias === 0 ? 'text-success' : resultado.detalhes.faixa1.reducao_ausencias < 100 ? 'text-amber-600' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.reducao_ausencias === 0 
+                        ? '✓ Sem redução' 
+                        : `↓ Reduz ${resultado.detalhes.faixa1.reducao_ausencias.toFixed(0)}%`}
                     </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
                     <p className="text-xs text-muted-foreground mb-1">Pendências Admin/Fiscal</p>
                     <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.pendencias}</p>
-                    <p className={`text-xs ${resultado.detalhes.faixa1.pendencias === 0 ? 'text-success' : 'text-destructive'}`}>
-                      {resultado.detalhes.faixa1.pendencias === 0 ? '✓ OK' : '✗ Inelegível'}
+                    <p className={`text-xs ${resultado.detalhes.faixa1.reducao_pendencias === 0 ? 'text-success' : resultado.detalhes.faixa1.reducao_pendencias < 100 ? 'text-amber-600' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.reducao_pendencias === 0 
+                        ? '✓ Sem redução' 
+                        : `↓ Reduz ${resultado.detalhes.faixa1.reducao_pendencias.toFixed(0)}%`}
                     </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
                     <p className="text-xs text-muted-foreground mb-1">Notificações</p>
                     <p className="text-xl font-semibold text-foreground">{resultado.detalhes.faixa1.notificacoes}</p>
-                    <p className={`text-xs ${resultado.detalhes.faixa1.notificacoes === 0 ? 'text-success' : 'text-destructive'}`}>
-                      {resultado.detalhes.faixa1.notificacoes === 0 ? '✓ OK' : '✗ Inelegível'}
+                    <p className={`text-xs ${resultado.detalhes.faixa1.reducao_notificacoes === 0 ? 'text-success' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.reducao_notificacoes === 0 
+                        ? '✓ Sem redução' 
+                        : `↓ Reduz ${resultado.detalhes.faixa1.reducao_notificacoes.toFixed(0)}%`}
                     </p>
                   </div>
+                </div>
+
+                {/* Resumo da redução total */}
+                <div className="mt-4 p-3 bg-muted/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Redução total aplicada ao prêmio: <span className={`font-semibold ${resultado.detalhes.faixa1.reducao_total === 0 ? 'text-success' : resultado.detalhes.faixa1.reducao_total < 100 ? 'text-amber-600' : 'text-destructive'}`}>
+                      {resultado.detalhes.faixa1.reducao_total.toFixed(0)}%
+                    </span>
+                  </p>
                 </div>
               </div>
 
