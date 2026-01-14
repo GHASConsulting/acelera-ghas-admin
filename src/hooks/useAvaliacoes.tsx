@@ -9,17 +9,25 @@ type AvaliacaoMensal = Tables<'avaliacoes_mensais'>;
 type AvaliacaoInsert = TablesInsert<'avaliacoes_mensais'>;
 type AvaliacaoUpdate = TablesUpdate<'avaliacoes_mensais'>;
 
+export type RegistroGlobalComPrestador = RegistroGlobal & {
+  registrado_por?: { id: string; nome: string } | null;
+};
+
+export type AvaliacaoComAvaliador = AvaliacaoMensal & {
+  avaliador?: { id: string; nome: string } | null;
+};
+
 export function useRegistrosGlobais() {
   return useQuery({
     queryKey: ['registros_globais'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('registros_globais')
-        .select('*')
+        .select('*, registrado_por:prestadores!registros_globais_registrado_por_id_fkey(id, nome)')
         .order('mes');
 
       if (error) throw error;
-      return data as RegistroGlobal[];
+      return data as RegistroGlobalComPrestador[];
     },
   });
 }
@@ -69,7 +77,9 @@ export function useAvaliacoes(prestadorId?: string) {
   return useQuery({
     queryKey: ['avaliacoes', prestadorId],
     queryFn: async () => {
-      let query = supabase.from('avaliacoes_mensais').select('*');
+      let query = supabase
+        .from('avaliacoes_mensais')
+        .select('*, avaliador:prestadores!avaliacoes_mensais_avaliador_id_fkey(id, nome)');
       
       if (prestadorId) {
         query = query.eq('prestador_id', prestadorId);
@@ -78,7 +88,7 @@ export function useAvaliacoes(prestadorId?: string) {
       const { data, error } = await query.order('mes');
 
       if (error) throw error;
-      return data as AvaliacaoMensal[];
+      return data as AvaliacaoComAvaliador[];
     },
     enabled: !!prestadorId || prestadorId === undefined,
   });

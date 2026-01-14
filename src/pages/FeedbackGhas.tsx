@@ -528,6 +528,7 @@ export default function FeedbackGhasPage() {
                 <Lock className="w-4 h-4" />
                 <span className="text-sm">
                   Liberado em {new Date(currentFeedback.liberado_em).toLocaleDateString('pt-BR')}
+                  {currentFeedback.autor?.nome && ` por ${currentFeedback.autor.nome}`}
                 </span>
               </div>
             )}
