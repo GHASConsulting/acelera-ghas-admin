@@ -671,7 +671,7 @@ export default function Calculo() {
                 <div className="faixa-header">
                   <span className="faixa-number bg-amber-100 text-amber-700">🥉</span>
                   <div>
-                    <h3 className="faixa-title">Faixa 1 – Existir e Ser Confiável</h3>
+                    <h3 className="faixa-title">Elegibilidade</h3>
                     <p className="text-sm text-muted-foreground">Elegibilidade e Reduções (aplicadas ao prêmio final)</p>
                   </div>
                   <div className="ml-auto flex items-center gap-2">
