@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Globe, Info, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Globe, Info, Loader2, Trash2, Lock, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Tooltip,
@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useRegistrosGlobais, useCreateRegistroGlobal, useUpdateRegistroGlobal, useDeleteRegistroGlobal } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
@@ -80,7 +81,9 @@ export default function RegistroGlobalPage() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
   const [currentRegistro, setCurrentRegistro] = useState<RegistroGlobal | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -148,10 +151,12 @@ export default function RegistroGlobalPage() {
 
   const handleEditarRegistro = (registro: RegistroGlobal) => {
     setCurrentRegistro({ ...registro });
+    const isLiberado = !!registro.liberado_em;
+    setIsEditing(!isLiberado);
     setIsFormOpen(true);
   };
 
-  const handleSalvarRegistro = async () => {
+  const handleSalvarRegistro = async (liberar: boolean = false) => {
     if (!currentRegistro) return;
 
     try {
@@ -160,20 +165,33 @@ export default function RegistroGlobalPage() {
         faixa4_nps_global: currentRegistro.faixa4_nps_global,
         faixa4_churn: currentRegistro.faixa4_churn,
         faixa4_uso_ava: currentRegistro.faixa4_uso_ava,
+        ...(liberar ? { liberado_em: new Date().toISOString() } : {}),
       });
 
       toast({
-        title: 'Registro salvo',
-        description: 'Indicadores globais foram atualizados com sucesso.',
+        title: liberar ? 'Registro liberado' : 'Registro salvo',
+        description: liberar 
+          ? 'O registro foi liberado e não poderá mais ser editado.' 
+          : 'Indicadores globais foram atualizados com sucesso.',
       });
       setIsFormOpen(false);
       setCurrentRegistro(null);
+      setIsEditing(false);
+      setIsReleaseDialogOpen(false);
     } catch (error: any) {
       toast({
         title: 'Erro ao salvar',
         description: error.message || 'Ocorreu um erro ao salvar o registro.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleClickSalvar = () => {
+    if (!currentRegistro?.liberado_em) {
+      setIsReleaseDialogOpen(true);
+    } else {
+      handleSalvarRegistro(false);
     }
   };
 
@@ -194,6 +212,7 @@ export default function RegistroGlobalPage() {
       setIsDeleteDialogOpen(false);
       setIsFormOpen(false);
       setCurrentRegistro(null);
+      setIsEditing(false);
     } catch (error: any) {
       toast({
         title: 'Erro ao excluir',
@@ -299,25 +318,31 @@ export default function RegistroGlobalPage() {
                       </div>
 
                       <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">NPS Global ≥75</p>
-                          <p className="text-lg font-bold text-primary">
-                            {Number(registro.faixa4_nps_global) === 1 ? 'Sim' : 'Não'}
-                          </p>
+                          {registro.liberado_em && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Lock className="w-3 h-3" />
+                              Liberado
+                            </Badge>
+                          )}
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground mb-1">NPS Global ≥75</p>
+                            <p className="text-lg font-bold text-primary">
+                              {Number(registro.faixa4_nps_global) === 1 ? 'Sim' : 'Não'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Churn ≥1</p>
+                            <p className="text-lg font-bold text-primary">
+                              {Number(registro.faixa4_churn) === 1 ? 'Sim' : 'Não'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Uso AVA &gt;50%</p>
+                            <p className="text-lg font-bold text-primary">
+                              {Number(registro.faixa4_uso_ava) === 1 ? 'Sim' : 'Não'}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Churn ≥1</p>
-                          <p className="text-lg font-bold text-primary">
-                            {Number(registro.faixa4_churn) === 1 ? 'Sim' : 'Não'}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Uso AVA &gt;50%</p>
-                          <p className="text-lg font-bold text-primary">
-                            {Number(registro.faixa4_uso_ava) === 1 ? 'Sim' : 'Não'}
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -485,19 +510,42 @@ export default function RegistroGlobalPage() {
           )}
 
           <DialogFooter className="flex justify-between sm:justify-between">
-            <Button 
-              variant="destructive" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-              className="gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Excluir
-            </Button>
+            {isEditing && !currentRegistro?.liberado_em && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Excluir
+              </Button>
+            )}
+            {currentRegistro?.liberado_em && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                <span className="text-sm">
+                  Liberado em {new Date(currentRegistro.liberado_em).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-                Cancelar
+                {currentRegistro?.liberado_em ? 'Fechar' : 'Cancelar'}
               </Button>
-              <Button onClick={handleSalvarRegistro}>Salvar Indicadores</Button>
+              {isEditing && !currentRegistro?.liberado_em && (
+                <Button 
+                  onClick={handleClickSalvar} 
+                  disabled={updateRegistro.isPending}
+                  className="gap-2"
+                >
+                  {updateRegistro.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </DialogContent>
@@ -520,6 +568,37 @@ export default function RegistroGlobalPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Liberar Registro */}
+      <AlertDialog open={isReleaseDialogOpen} onOpenChange={setIsReleaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Liberar Registro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja liberar o registro global de <strong>{currentRegistro?.mes}</strong>?
+              <br /><br />
+              <strong>Atenção:</strong> Após a liberação, o registro não poderá mais ser editado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                handleSalvarRegistro(false);
+                setIsReleaseDialogOpen(false);
+              }}
+            >
+              Salvar sem Liberar
+            </Button>
+            <AlertDialogAction 
+              onClick={() => handleSalvarRegistro(true)}
+            >
+              Liberar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

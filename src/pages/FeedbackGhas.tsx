@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, Loader2, Trash2, Save, User } from 'lucide-react';
+import { Plus, MessageSquare, Loader2, Trash2, Save, User, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -46,6 +47,7 @@ interface FeedbackGhas {
   feedback_parar_fazer: string | null;
   criado_em: string;
   atualizado_em: string;
+  liberado_em?: string | null;
   autor?: { id: string; nome: string };
   destinatario?: { id: string; nome: string };
 }
@@ -88,7 +90,9 @@ export default function FeedbackGhasPage() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState<FeedbackGhas | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
   const [newDestinatario, setNewDestinatario] = useState<string>('');
   const { toast } = useToast();
@@ -176,10 +180,12 @@ export default function FeedbackGhasPage() {
 
   const handleEditarFeedback = (feedback: FeedbackGhas) => {
     setCurrentFeedback({ ...feedback });
+    const isLiberado = !!feedback.liberado_em;
+    setIsEditing(!isLiberado);
     setIsFormOpen(true);
   };
 
-  const handleSalvarFeedback = async () => {
+  const handleSalvarFeedback = async (liberar: boolean = false) => {
     if (!currentFeedback) return;
 
     try {
@@ -188,20 +194,33 @@ export default function FeedbackGhasPage() {
         feedback_comecar_fazer: currentFeedback.feedback_comecar_fazer,
         feedback_continuar_fazer: currentFeedback.feedback_continuar_fazer,
         feedback_parar_fazer: currentFeedback.feedback_parar_fazer,
+        ...(liberar ? { liberado_em: new Date().toISOString() } : {}),
       });
 
       toast({
-        title: 'Feedback salvo',
-        description: 'O feedback foi atualizado com sucesso.',
+        title: liberar ? 'Feedback liberado' : 'Feedback salvo',
+        description: liberar 
+          ? 'O feedback foi liberado e não poderá mais ser editado.' 
+          : 'O feedback foi atualizado com sucesso.',
       });
       setIsFormOpen(false);
       setCurrentFeedback(null);
+      setIsEditing(false);
+      setIsReleaseDialogOpen(false);
     } catch (error: any) {
       toast({
         title: 'Erro ao salvar',
         description: error.message || 'Ocorreu um erro ao salvar o feedback.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleClickSalvar = () => {
+    if (!currentFeedback?.liberado_em) {
+      setIsReleaseDialogOpen(true);
+    } else {
+      handleSalvarFeedback(false);
     }
   };
 
@@ -222,6 +241,7 @@ export default function FeedbackGhasPage() {
       setIsDeleteDialogOpen(false);
       setIsFormOpen(false);
       setCurrentFeedback(null);
+      setIsEditing(false);
     } catch (error: any) {
       toast({
         title: 'Erro ao excluir',
@@ -325,19 +345,25 @@ export default function FeedbackGhasPage() {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Autor</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {feedback.autor?.nome || 'N/A'}
-                          </p>
+                          {feedback.liberado_em && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Lock className="w-3 h-3" />
+                              Liberado
+                            </Badge>
+                          )}
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Autor</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {feedback.autor?.nome || 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Atualizado em</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(feedback.atualizado_em).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Atualizado em</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(feedback.atualizado_em).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -487,30 +513,42 @@ export default function FeedbackGhasPage() {
           )}
 
           <DialogFooter className="flex justify-between sm:justify-between">
-            <Button 
-              variant="destructive" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-              className="gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Excluir
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-                Cancelar
-              </Button>
+            {isEditing && !currentFeedback?.liberado_em && (
               <Button 
-                onClick={handleSalvarFeedback} 
-                disabled={updateFeedback.isPending}
+                variant="destructive" 
+                onClick={() => setIsDeleteDialogOpen(true)}
                 className="gap-2"
               >
-                {updateFeedback.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Salvar
+                <Trash2 className="w-4 h-4" />
+                Excluir
               </Button>
+            )}
+            {currentFeedback?.liberado_em && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                <span className="text-sm">
+                  Liberado em {new Date(currentFeedback.liberado_em).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                {currentFeedback?.liberado_em ? 'Fechar' : 'Cancelar'}
+              </Button>
+              {isEditing && !currentFeedback?.liberado_em && (
+                <Button 
+                  onClick={handleClickSalvar} 
+                  disabled={updateFeedback.isPending}
+                  className="gap-2"
+                >
+                  {updateFeedback.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </DialogContent>
@@ -533,6 +571,38 @@ export default function FeedbackGhasPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Liberar Feedback */}
+      <AlertDialog open={isReleaseDialogOpen} onOpenChange={setIsReleaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Liberar Feedback</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja liberar o feedback de <strong>{currentFeedback?.mes}</strong> para{' '}
+              <strong>{currentFeedback?.destinatario?.nome}</strong>?
+              <br /><br />
+              <strong>Atenção:</strong> Após a liberação, o feedback não poderá mais ser editado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                handleSalvarFeedback(false);
+                setIsReleaseDialogOpen(false);
+              }}
+            >
+              Salvar sem Liberar
+            </Button>
+            <AlertDialogAction 
+              onClick={() => handleSalvarFeedback(true)}
+            >
+              Liberar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

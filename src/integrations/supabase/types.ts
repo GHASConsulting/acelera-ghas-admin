@@ -126,6 +126,7 @@ export type Database = {
           feedback_continuar_fazer: string | null
           feedback_parar_fazer: string | null
           id: string
+          liberado_em: string | null
           mes: string
         }
         Insert: {
@@ -137,6 +138,7 @@ export type Database = {
           feedback_continuar_fazer?: string | null
           feedback_parar_fazer?: string | null
           id?: string
+          liberado_em?: string | null
           mes: string
         }
         Update: {
@@ -148,6 +150,7 @@ export type Database = {
           feedback_continuar_fazer?: string | null
           feedback_parar_fazer?: string | null
           id?: string
+          liberado_em?: string | null
           mes?: string
         }
         Relationships: [
@@ -225,6 +228,7 @@ export type Database = {
           faixa4_nps_global: number
           faixa4_uso_ava: number
           id: string
+          liberado_em: string | null
           mes: string
           registrado_por_id: string
         }
@@ -235,6 +239,7 @@ export type Database = {
           faixa4_nps_global?: number
           faixa4_uso_ava?: number
           id?: string
+          liberado_em?: string | null
           mes: string
           registrado_por_id: string
         }
@@ -245,6 +250,7 @@ export type Database = {
           faixa4_nps_global?: number
           faixa4_uso_ava?: number
           id?: string
+          liberado_em?: string | null
           mes?: string
           registrado_por_id?: string
         }
