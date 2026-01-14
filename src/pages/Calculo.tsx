@@ -341,9 +341,10 @@ export default function Calculo() {
         uso_ava_sim = avgUsoAva >= 0.5;
       }
 
+      // Churn invertido: "Não" (churn < 1, ou seja, reteve clientes) ganha pontos
       const percentual_faixa4 = 
         (nps_global_sim ? 0.40 : 0) +
-        (churn_sim ? 0.30 : 0) +
+        (!churn_sim ? 0.30 : 0) +
         (uso_ava_sim ? 0.30 : 0);
 
       return {
