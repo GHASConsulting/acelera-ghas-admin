@@ -117,20 +117,30 @@ export default function Calculo() {
 
   const prestadorSelecionado = prestadoresFiltrados.find((p) => p.id === selectedPrestador);
 
-  // Avaliações do prestador selecionado
-  const avaliacoesPrestador = avaliacoes;
+  // Avaliações do prestador selecionado - filtrar apenas liberadas
+  const avaliacoesPrestador = avaliacoes.filter(a => a.liberado_em !== null);
+
+  // Meses com registros globais liberados
+  const mesesComRegistroGlobalLiberado = registrosGlobais
+    .filter(r => r.liberado_em !== null)
+    .map(r => r.mes);
+
+  // Avaliações que têm tanto avaliação liberada quanto registro global liberado
+  const avaliacoesDisponiveis = avaliacoesPrestador.filter(
+    a => mesesComRegistroGlobalLiberado.includes(a.mes)
+  );
 
   // Avaliações filtradas pelo período
   const avaliacoesFiltradas = useMemo(() => {
     if (selectedPeriodo === 'mensal' && selectedMes) {
-      return avaliacoesPrestador.filter((a) => a.mes === selectedMes);
+      return avaliacoesDisponiveis.filter((a) => a.mes === selectedMes);
     } else if (selectedPeriodo === 'semestral_1') {
-      return avaliacoesPrestador.filter((a) => SEMESTRE_1_MESES.includes(a.mes));
+      return avaliacoesDisponiveis.filter((a) => SEMESTRE_1_MESES.includes(a.mes));
     } else if (selectedPeriodo === 'semestral_2') {
-      return avaliacoesPrestador.filter((a) => SEMESTRE_2_MESES.includes(a.mes));
+      return avaliacoesDisponiveis.filter((a) => SEMESTRE_2_MESES.includes(a.mes));
     }
     return [];
-  }, [avaliacoesPrestador, selectedPeriodo, selectedMes]);
+  }, [avaliacoesDisponiveis, selectedPeriodo, selectedMes]);
 
   // Função para calcular resultado de um único mês
   const calcularResultadoMes = (avaliacao: AvaliacaoMensal, salario_base: number): {
@@ -488,7 +498,7 @@ export default function Calculo() {
                       <SelectValue placeholder="Selecione o mês..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {ordenarPorMes(avaliacoesPrestador).map((a) => (
+                      {ordenarPorMes(avaliacoesDisponiveis).map((a) => (
                         <SelectItem key={a.mes} value={a.mes}>
                           {a.mes}
                         </SelectItem>
