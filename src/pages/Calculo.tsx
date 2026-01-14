@@ -151,7 +151,8 @@ export default function Calculo() {
     valor_faixa4: number;
     detalhes: ResultadoCalculo['detalhes'];
   } => {
-    const premio_maximo_semestral = salario_base * 0.8;
+    // Prêmio Máximo Semestral = 40% dos Vencimentos (80% anual dividido em 2 semestres)
+    const premio_maximo_semestral = salario_base * 0.4;
     // Teto MENSAL = valor semestral / 6
     const faixa2_max_mensal = (premio_maximo_semestral * 0.4) / 6;
     const faixa3_max_mensal = (premio_maximo_semestral * 0.4) / 6;
@@ -253,7 +254,9 @@ export default function Calculo() {
     if (avaliacoesFiltradas.length === 0 || !prestadorSelecionado) return null;
 
     const salario_base = Number(prestadorSelecionado.salario_fixo);
-    const premio_maximo = salario_base * 0.8;
+    // Prêmio Máximo Anual = 80%, Semestral = 40%
+    const premio_maximo_anual = salario_base * 0.8;
+    const premio_maximo_semestral = salario_base * 0.4;
 
     // Para visualização SEMESTRAL: soma os prêmios de cada mês
     if (selectedPeriodo === 'semestral_1' || selectedPeriodo === 'semestral_2') {
@@ -345,7 +348,7 @@ export default function Calculo() {
 
       return {
         elegivel,
-        premio_maximo,
+        premio_maximo: premio_maximo_anual,
         valor_faixa2: totalFaixa2,
         valor_faixa3: totalFaixa3,
         valor_faixa4: totalFaixa4,
@@ -390,7 +393,7 @@ export default function Calculo() {
 
     return {
       elegivel: resultadoMes.elegivel,
-      premio_maximo,
+      premio_maximo: premio_maximo_anual,
       valor_faixa2: resultadoMes.valor_faixa2,
       valor_faixa3: resultadoMes.valor_faixa3,
       valor_faixa4: resultadoMes.valor_faixa4,
