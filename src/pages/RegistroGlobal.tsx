@@ -447,7 +447,7 @@ export default function RegistroGlobalPage() {
                   {/* Churn */}
                   <div className="input-group">
                     <div className="flex items-center gap-2 mb-3">
-                      <Label className="input-label">O Churn da GHAS foi igual ou superior a 1? (Peso 30%)</Label>
+                      <Label className="input-label">O Churn da GHAS foi menor que 1? (Peso 30%)</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>

@@ -172,7 +172,7 @@ Avaliação por amostragem mínima de 6 chamados mensais.
   
   nps_global: `NPS Mensal da GHAS deve estar com score mensal igual ou superior a 75.`,
   
-  churn: `O Churn da GHAS foi igual ou superior a 1?`,
+  churn: `O Churn da GHAS foi menor que 1?`,
   
   uso_ava: `Percentual de uso da AVA pelos prestadores.`,
 };
@@ -940,7 +940,7 @@ export default function Registro() {
                         </div>
                         <div>
                           <Label className="input-label flex items-center gap-2">
-                            O Churn da GHAS foi igual ou superior a 1? (Peso 30%)
+                            O Churn da GHAS foi menor que 1? (Peso 30%)
                             <InfoTooltip content={TOOLTIPS.churn} />
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </Label>
