@@ -404,19 +404,17 @@ export default function Calculo() {
     } as ResultadoCalculo;
   }, [avaliacoesFiltradas, prestadorSelecionado, registrosGlobais, selectedPeriodo]);
 
-  // Fator de divisão: quando mensal, divide por 6
-  const divisor = selectedPeriodo === 'mensal' ? 6 : 1;
-
-  // Valores exibidos (divididos por 6 quando mensal)
+  // Valores exibidos: para mensal já vem calculado como 1/6 do semestre em calcularResultadoMes
+  // Para semestral, mostra a soma dos meses (também já calculado)
   const valoresExibidos = useMemo(() => {
     if (!resultado) return null;
     return {
-      premio_final: resultado.premio_valor / divisor,
-      valor_faixa2: resultado.valor_faixa2 / divisor,
-      valor_faixa3: resultado.valor_faixa3 / divisor,
-      valor_faixa4: resultado.valor_faixa4 / divisor,
+      premio_final: resultado.premio_valor,
+      valor_faixa2: resultado.valor_faixa2,
+      valor_faixa3: resultado.valor_faixa3,
+      valor_faixa4: resultado.valor_faixa4,
     };
-  }, [resultado, divisor]);
+  }, [resultado]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
