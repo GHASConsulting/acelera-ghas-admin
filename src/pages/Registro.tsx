@@ -47,6 +47,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { usePrestadores } from '@/hooks/usePrestadores';
 import { useAvaliacoes, useRegistrosGlobais, useCreateAvaliacao, useUpdateAvaliacao, useDeleteAvaliacao } from '@/hooks/useAvaliacoes';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
+import { useFeedbacksGhas } from '@/hooks/useFeedbacksGhas';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -142,8 +143,12 @@ Pendências administrativas:
 • 1 ou mais: Prestador recebeu notificação formal`,
   
   produtividade: `O prestador atingiu a produtividade mínima exigida para sua função?
-• Sim: Atingiu a meta mínima
-• Não: Não atingiu a meta mínima`,
+
+• N1: 120 chamados;
+• N2: 60 chamados;
+• Especialista: 60 chamados;
+
+Obs.: em caso de o Prestador de Serviços não atingir a meta mínima, o mesmo deverá (a) possuir backlog do cliente em atuação com até no máximo 3 chamados abertos ao fim do mês ou (b) todas as atividades de cronogramas e lista de prioridades deverão estar entregues em dia conforme prazo acordado com a GHAS e com o cliente.`,
   
   qualidade: `O prestador atingiu a qualidade mínima exigida?
 Avaliação por amostragem mínima de 6 chamados mensais.
@@ -175,6 +180,7 @@ Avaliação por amostragem mínima de 6 chamados mensais.
 export default function Registro() {
   const { data: prestadores = [], isLoading: loadingPrestadores } = usePrestadores();
   const { data: registrosGlobais = [] } = useRegistrosGlobais();
+  const { data: feedbacksGhas = [] } = useFeedbacksGhas();
   const { prestador: prestadorLogado, loading: loadingUser, isAdmin } = usePrestadorLogado();
   
   const [selectedPrestador, setSelectedPrestador] = useState<string>('');
@@ -210,6 +216,19 @@ export default function Registro() {
   const getRegistroGlobal = (mes: string) => {
     return registrosGlobais.find((r) => r.mes === mes);
   };
+
+  // Buscar feedback GHAS para o prestador e mês (somente liberados)
+  const getFeedbackGhas = (prestadorId: string, mes: string) => {
+    return feedbacksGhas.find(
+      (f) => f.destinatario_id === prestadorId && f.mes === mes && f.liberado_em !== null
+    );
+  };
+
+  // Verificar se há feedback GHAS liberado para o registro atual
+  const feedbackGhasAtual = currentAvaliacao
+    ? getFeedbackGhas(currentAvaliacao.prestador_id as string, currentAvaliacao.mes as string)
+    : null;
+  const hasFeedbackGhas = !!feedbackGhasAtual;
 
   const handleCriarAvaliacao = async () => {
     if (!selectedPrestador || !newMes || !prestadorLogado) {
@@ -960,34 +979,52 @@ export default function Registro() {
                     <h3 className="faixa-title">Feedback e Desenvolvimento</h3>
                     <p className="text-sm text-muted-foreground">Reflexões para melhoria contínua</p>
                   </div>
+                  {hasFeedbackGhas && (
+                    <Badge variant="secondary" className="ml-auto gap-1">
+                      <Lock className="w-3 h-3" />
+                      Via Feedback GHAS
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="space-y-6 mt-4">
                   <div>
-                    <Label className="input-label">O que devo Começar a Fazer</Label>
+                    <Label className="input-label flex items-center">
+                      O que devo Começar a Fazer
+                      {hasFeedbackGhas && <Lock className="w-3 h-3 ml-2 text-muted-foreground" />}
+                    </Label>
                     <Textarea 
                       placeholder="Descreva novas ações ou comportamentos que você deve começar a adotar..."
                       className="mt-2 min-h-[100px]"
-                      value={currentAvaliacao.feedback_comecar_fazer || ''}
+                      value={hasFeedbackGhas ? (feedbackGhasAtual?.feedback_comecar_fazer || '') : (currentAvaliacao.feedback_comecar_fazer || '')}
                       onChange={(e) => updateField('feedback_comecar_fazer', e.target.value)}
+                      disabled={hasFeedbackGhas || !isEditing}
                     />
                   </div>
                   <div>
-                    <Label className="input-label">O que devo Continuar a Fazer</Label>
+                    <Label className="input-label flex items-center">
+                      O que devo Continuar a Fazer
+                      {hasFeedbackGhas && <Lock className="w-3 h-3 ml-2 text-muted-foreground" />}
+                    </Label>
                     <Textarea 
                       placeholder="Descreva ações ou comportamentos positivos que você deve manter..."
                       className="mt-2 min-h-[100px]"
-                      value={currentAvaliacao.feedback_continuar_fazer || ''}
+                      value={hasFeedbackGhas ? (feedbackGhasAtual?.feedback_continuar_fazer || '') : (currentAvaliacao.feedback_continuar_fazer || '')}
                       onChange={(e) => updateField('feedback_continuar_fazer', e.target.value)}
+                      disabled={hasFeedbackGhas || !isEditing}
                     />
                   </div>
                   <div>
-                    <Label className="input-label">O que devo Parar de Fazer</Label>
+                    <Label className="input-label flex items-center">
+                      O que devo Parar de Fazer
+                      {hasFeedbackGhas && <Lock className="w-3 h-3 ml-2 text-muted-foreground" />}
+                    </Label>
                     <Textarea 
                       placeholder="Descreva ações ou comportamentos que você deve eliminar..."
                       className="mt-2 min-h-[100px]"
-                      value={currentAvaliacao.feedback_parar_fazer || ''}
+                      value={hasFeedbackGhas ? (feedbackGhasAtual?.feedback_parar_fazer || '') : (currentAvaliacao.feedback_parar_fazer || '')}
                       onChange={(e) => updateField('feedback_parar_fazer', e.target.value)}
+                      disabled={hasFeedbackGhas || !isEditing}
                     />
                   </div>
                 </div>
