@@ -23,14 +23,10 @@ const navigation = [{
   icon: Globe,
   requiresGhas: true
 }, {
-  name: 'Feedback GHAS',
+  name: 'Avaliação',
   href: '/feedback-ghas',
   icon: MessageSquare,
   requiresGhas: true
-}, {
-  name: 'Meus Feedbacks',
-  href: '/feedback',
-  icon: MessageSquare
 }, {
   name: 'Cálculo',
   href: '/calculo',
