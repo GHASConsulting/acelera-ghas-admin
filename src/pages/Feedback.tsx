@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageSquare, Loader2, Eye } from 'lucide-react';
+import { MessageSquare, Loader2, Eye, Lock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Label } from '@/components/ui/label';
 import {
@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { useFeedbacksGhas } from '@/hooks/useFeedbacksGhas';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 
@@ -22,6 +23,7 @@ interface FeedbackGhas {
   feedback_parar_fazer: string | null;
   criado_em: string;
   atualizado_em: string;
+  liberado_em?: string | null;
   autor?: { id: string; nome: string };
   destinatario?: { id: string; nome: string };
 }
@@ -135,16 +137,22 @@ export default function FeedbackPage() {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Recebido em</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(feedback.criado_em).toLocaleDateString('pt-BR')}
-                          </p>
+                          {feedback.liberado_em && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Lock className="w-3 h-3" />
+                              Liberado
+                            </Badge>
+                          )}
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Recebido em</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(feedback.criado_em).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          </div>
                         </div>
-                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                          <Eye className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ))}

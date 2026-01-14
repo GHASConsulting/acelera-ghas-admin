@@ -11,6 +11,7 @@ interface FeedbackGhas {
   feedback_parar_fazer: string | null;
   criado_em: string;
   atualizado_em: string;
+  liberado_em: string | null;
 }
 
 interface FeedbackGhasWithRelations extends FeedbackGhas {
@@ -73,6 +74,7 @@ export function useUpdateFeedbackGhas() {
       feedback_comecar_fazer?: string | null;
       feedback_continuar_fazer?: string | null;
       feedback_parar_fazer?: string | null;
+      liberado_em?: string | null;
     }) => {
       const { id, ...updates } = feedback;
       const { data, error } = await supabase
