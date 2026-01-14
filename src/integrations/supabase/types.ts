@@ -39,6 +39,7 @@ export type Database = {
           feedback_continuar_fazer: string | null
           feedback_parar_fazer: string | null
           id: string
+          liberado_em: string | null
           mes: string
           prestador_id: string
         }
@@ -66,6 +67,7 @@ export type Database = {
           feedback_continuar_fazer?: string | null
           feedback_parar_fazer?: string | null
           id?: string
+          liberado_em?: string | null
           mes: string
           prestador_id: string
         }
@@ -93,6 +95,7 @@ export type Database = {
           feedback_continuar_fazer?: string | null
           feedback_parar_fazer?: string | null
           id?: string
+          liberado_em?: string | null
           mes?: string
           prestador_id?: string
         }

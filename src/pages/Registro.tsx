@@ -183,6 +183,7 @@ export default function Registro() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
   const [currentAvaliacao, setCurrentAvaliacao] = useState<Partial<AvaliacaoMensal> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
@@ -250,11 +251,13 @@ export default function Registro() {
 
   const handleEditarAvaliacao = (avaliacao: AvaliacaoMensal) => {
     setCurrentAvaliacao({ ...avaliacao });
-    setIsEditing(true);
+    // Se a avaliação já foi liberada, abre em modo visualização
+    const isLiberado = !!avaliacao.liberado_em;
+    setIsEditing(!isLiberado);
     setIsFormOpen(true);
   };
 
-  const handleSalvarAvaliacao = async () => {
+  const handleSalvarAvaliacao = async (liberar: boolean = false) => {
     if (!currentAvaliacao || !currentAvaliacao.id) return;
 
     try {
@@ -275,22 +278,35 @@ export default function Registro() {
         feedback_comecar_fazer: currentAvaliacao.feedback_comecar_fazer,
         feedback_continuar_fazer: currentAvaliacao.feedback_continuar_fazer,
         feedback_parar_fazer: currentAvaliacao.feedback_parar_fazer,
+        ...(liberar ? { liberado_em: new Date().toISOString() } : {}),
       });
 
       toast({
-        title: 'Avaliação salva',
-        description: 'As alterações foram salvas com sucesso.',
+        title: liberar ? 'Avaliação liberada' : 'Avaliação salva',
+        description: liberar 
+          ? 'A avaliação foi liberada e não poderá mais ser editada.' 
+          : 'As alterações foram salvas com sucesso.',
       });
 
       setIsFormOpen(false);
       setCurrentAvaliacao(null);
       setIsEditing(false);
+      setIsReleaseDialogOpen(false);
     } catch (error: any) {
       toast({
         title: 'Erro ao salvar',
         description: error.message || 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleClickSalvar = () => {
+    // Se a avaliação ainda não foi liberada, pergunta se deseja liberar
+    if (!currentAvaliacao?.liberado_em) {
+      setIsReleaseDialogOpen(true);
+    } else {
+      handleSalvarAvaliacao(false);
     }
   };
 
@@ -485,6 +501,12 @@ export default function Registro() {
                         </div>
 
                         <div className="flex items-center gap-6">
+                          {avaliacao.liberado_em && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Lock className="w-3 h-3" />
+                              Liberado
+                            </Badge>
+                          )}
                           <div className="text-center">
                             <p className="text-xs text-muted-foreground mb-1">Faixa 2</p>
                             <p className="text-lg font-bold text-primary">
@@ -974,7 +996,7 @@ export default function Registro() {
           )}
 
           <DialogFooter className="flex justify-between sm:justify-between">
-            {isEditing && (
+            {isEditing && !currentAvaliacao?.liberado_em && (
               <Button 
                 variant="destructive" 
                 onClick={() => setIsDeleteDialogOpen(true)}
@@ -984,13 +1006,21 @@ export default function Registro() {
                 Excluir
               </Button>
             )}
+            {currentAvaliacao?.liberado_em && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                <span className="text-sm">
+                  Liberado em {new Date(currentAvaliacao.liberado_em).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-                Cancelar
+                {currentAvaliacao?.liberado_em ? 'Fechar' : 'Cancelar'}
               </Button>
-              {isEditing && (
+              {isEditing && !currentAvaliacao?.liberado_em && (
                 <Button 
-                  onClick={handleSalvarAvaliacao} 
+                  onClick={handleClickSalvar} 
                   disabled={updateAvaliacao.isPending}
                   className="gap-2"
                 >
@@ -1024,6 +1054,37 @@ export default function Registro() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Liberar Registro */}
+      <AlertDialog open={isReleaseDialogOpen} onOpenChange={setIsReleaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Liberar Registro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja liberar o registro de <strong>{currentAvaliacao?.mes}</strong>?
+              <br /><br />
+              <strong>Atenção:</strong> Após a liberação, o registro não poderá mais ser editado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                handleSalvarAvaliacao(false);
+                setIsReleaseDialogOpen(false);
+              }}
+            >
+              Salvar sem Liberar
+            </Button>
+            <AlertDialogAction 
+              onClick={() => handleSalvarAvaliacao(true)}
+            >
+              Liberar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
