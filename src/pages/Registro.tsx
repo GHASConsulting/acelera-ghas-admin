@@ -422,7 +422,7 @@ export default function Registro() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="page-title">Registro de Avaliações</h1>
+              <h1 className="page-title">Acelera GHAS</h1>
               <p className="page-subtitle">
                 Registre as avaliações mensais dos seus prestadores
               </p>

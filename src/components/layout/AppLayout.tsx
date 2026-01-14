@@ -14,11 +14,11 @@ const navigation = [{
   icon: Users,
   requiresAdmin: true
 }, {
-  name: 'Registro',
+  name: 'Acelera GHAS',
   href: '/registro',
   icon: ClipboardList
 }, {
-  name: 'Registro Global',
+  name: 'Acelera GHAS Global',
   href: '/registro-global',
   icon: Globe,
   requiresGhas: true

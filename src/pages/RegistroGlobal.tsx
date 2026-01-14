@@ -242,7 +242,7 @@ export default function RegistroGlobalPage() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="page-title">Registro Global</h1>
+              <h1 className="page-title">Acelera GHAS Global</h1>
               <p className="page-subtitle">
                 Registre os indicadores globais da Faixa 4 (Resultado Empresa)
               </p>
