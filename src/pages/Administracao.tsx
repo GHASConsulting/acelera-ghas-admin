@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Search, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Search, UserCheck, UserX, Loader2, KeyRound } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -39,6 +49,10 @@ export default function Administracao() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPrestador, setEditingPrestador] = useState<Prestador | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [prestadorToResetPassword, setPrestadorToResetPassword] = useState<Prestador | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -207,6 +221,69 @@ export default function Administracao() {
     }
   };
 
+  const handleOpenResetPasswordDialog = (prestador: Prestador) => {
+    setPrestadorToResetPassword(prestador);
+    setNewPassword('');
+    setIsResetPasswordDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!prestadorToResetPassword) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: 'Senha inválida',
+        description: 'A senha deve ter no mínimo 6 caracteres.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    try {
+      // Chamar edge function para resetar a senha (requer service_role)
+      const response = await supabase.functions.invoke('reset-password', {
+        body: {
+          user_id: prestadorToResetPassword.user_id,
+          new_password: newPassword,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data.error) {
+        throw new Error(response.data.error);
+      }
+
+      // Limpar a data de alteração de senha para forçar primeiro acesso
+      await supabase
+        .from('prestadores')
+        .update({ senha_alterada_em: null })
+        .eq('id', prestadorToResetPassword.id);
+
+      toast({
+        title: 'Senha resetada',
+        description: `A senha de ${prestadorToResetPassword.nome} foi resetada. O usuário precisará alterá-la no próximo login.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['prestadores'] });
+      setIsResetPasswordDialogOpen(false);
+      setPrestadorToResetPassword(null);
+      setNewPassword('');
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao resetar senha',
+        description: error.message || 'Não foi possível resetar a senha.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -349,6 +426,15 @@ export default function Administracao() {
                                     Ativar
                                   </>
                                 )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenResetPasswordDialog(prestador)}
+                                className="text-warning hover:text-warning gap-1.5"
+                              >
+                                <KeyRound className="w-4 h-4" />
+                                Resetar Senha
                               </Button>
                             </>
                           )}
@@ -520,6 +606,53 @@ export default function Administracao() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Resetar Senha */}
+      <AlertDialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resetar Senha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Defina uma nova senha temporária para <strong>{prestadorToResetPassword?.nome}</strong>.
+              <br /><br />
+              O usuário será obrigado a alterar a senha no próximo login.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4">
+            <Label htmlFor="new-password" className="input-label">
+              Nova Senha Temporária
+            </Label>
+            <Input
+              id="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+              className="mt-2"
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setPrestadorToResetPassword(null);
+              setNewPassword('');
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button onClick={handleResetPassword} disabled={isResettingPassword}>
+              {isResettingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resetando...
+                </>
+              ) : (
+                'Resetar Senha'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

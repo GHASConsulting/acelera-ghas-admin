@@ -181,6 +181,7 @@ export type Database = {
           nome: string
           responsavel_ghas: boolean
           salario_fixo: number
+          senha_alterada_em: string | null
           situacao: Database["public"]["Enums"]["situacao_type"]
           user_id: string
         }
@@ -194,6 +195,7 @@ export type Database = {
           nome: string
           responsavel_ghas?: boolean
           salario_fixo?: number
+          senha_alterada_em?: string | null
           situacao?: Database["public"]["Enums"]["situacao_type"]
           user_id: string
         }
@@ -207,6 +209,7 @@ export type Database = {
           nome?: string
           responsavel_ghas?: boolean
           salario_fixo?: number
+          senha_alterada_em?: string | null
           situacao?: Database["public"]["Enums"]["situacao_type"]
           user_id?: string
         }
