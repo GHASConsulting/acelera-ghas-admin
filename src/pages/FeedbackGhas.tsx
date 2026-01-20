@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, Loader2, Trash2, Save, User, Lock, Unlock } from 'lucide-react';
+import { Plus, MessageSquare, Loader2, Trash2, Save, User, Lock, Unlock, Inbox, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -36,6 +35,7 @@ import { useFeedbacksGhas, useCreateFeedbackGhas, useUpdateFeedbackGhas, useDele
 import { usePrestadores } from '@/hooks/usePrestadores';
 import { usePrestadorLogado } from '@/hooks/usePrestadorLogado';
 import { useToast } from '@/hooks/use-toast';
+import { FeedbackList } from '@/components/feedback-ghas/FeedbackList';
 
 interface FeedbackGhas {
   id: string;
@@ -67,19 +67,6 @@ const MESES_AVALIACAO = [
   'Dezembro/2026',
 ];
 
-// Função para extrair índice do mês (1-12)
-const getMesIndex = (mes: string): number => {
-  const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
-                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-  const mesNome = mes.split('/')[0];
-  return mesesNomes.indexOf(mesNome);
-};
-
-// Função para ordenar por mês (1-12)
-const ordenarPorMes = <T extends { mes: string }>(items: T[]): T[] => {
-  return [...items].sort((a, b) => getMesIndex(a.mes) - getMesIndex(b.mes));
-};
-
 export default function FeedbackGhasPage() {
   const { data: feedbacks = [], isLoading } = useFeedbacksGhas();
   const { data: prestadores = [] } = usePrestadores();
@@ -87,6 +74,7 @@ export default function FeedbackGhasPage() {
   const createFeedback = useCreateFeedbackGhas();
   const updateFeedback = useUpdateFeedbackGhas();
   const deleteFeedback = useDeleteFeedbackGhas();
+  const [activeTab, setActiveTab] = useState('recebidos');
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -99,17 +87,18 @@ export default function FeedbackGhasPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Verificar se o usuário tem permissão
-  useEffect(() => {
-    if (!loadingUser && !isResponsavelGhas && !isAdmin) {
-      toast({
-        title: 'Acesso negado',
-        description: 'Você não tem permissão para acessar esta página.',
-        variant: 'destructive',
-      });
-      navigate('/registro');
-    }
-  }, [loadingUser, isResponsavelGhas, isAdmin, navigate, toast]);
+  // Verificar se o usuário tem permissão (apenas para criar/editar feedbacks enviados)
+  const canCreateFeedback = isResponsavelGhas || isAdmin;
+
+  // Filtrar feedbacks recebidos (onde o usuário logado é o destinatário)
+  const feedbacksRecebidos = feedbacks.filter(
+    (f) => f.destinatario_id === prestador?.id
+  );
+
+  // Filtrar feedbacks enviados (onde o usuário logado é o autor)
+  const feedbacksEnviados = feedbacks.filter(
+    (f) => f.autor_id === prestador?.id
+  );
 
   // Prestadores ativos disponíveis como destinatários
   const prestadoresAtivos = prestadores.filter((p) => p.situacao === 'ativo');
@@ -171,6 +160,7 @@ export default function FeedbackGhasPage() {
       });
       setIsEditing(true);
       setIsFormOpen(true);
+      setActiveTab('enviados');
     } catch (error: any) {
       toast({
         title: 'Erro ao criar feedback',
@@ -180,10 +170,12 @@ export default function FeedbackGhasPage() {
     }
   };
 
-  const handleEditarFeedback = (feedback: FeedbackGhas) => {
+  const handleEditarFeedback = (feedback: FeedbackGhas, isRecebido: boolean) => {
     setCurrentFeedback({ ...feedback });
     const isLiberado = !!feedback.liberado_em;
-    setIsEditing(!isLiberado);
+    // Pode editar apenas se não estiver liberado E for feedback enviado pelo usuário
+    const canEdit = !isLiberado && !isRecebido && feedback.autor_id === prestador?.id;
+    setIsEditing(canEdit);
     setIsFormOpen(true);
   };
 
@@ -289,10 +281,6 @@ export default function FeedbackGhasPage() {
     );
   }
 
-  if (!isResponsavelGhas && !isAdmin) {
-    return null;
-  }
-
   return (
     <AppLayout>
       <div className="animate-fade-in">
@@ -302,29 +290,10 @@ export default function FeedbackGhasPage() {
             <div>
               <h1 className="page-title">Alinhamentos de Serviços</h1>
               <p className="page-subtitle">
-                Registre os alinhamentos de serviços para os prestadores
+                Visualize e gerencie os feedbacks de desenvolvimento
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {/* Botão Novo Feedback */}
-          <div className="bg-card rounded-xl border border-border p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Feedback e Desenvolvimento</p>
-                  <p className="text-sm text-muted-foreground">
-                    Reflexões para melhoria contínua dos prestadores
-                  </p>
-                </div>
-              </div>
-
+            {canCreateFeedback && (
               <Button
                 onClick={() => setIsNewDialogOpen(true)}
                 className="gap-2"
@@ -332,72 +301,62 @@ export default function FeedbackGhasPage() {
                 <Plus className="w-4 h-4" />
                 Novo Feedback
               </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Info Card */}
+          <div className="bg-card rounded-xl border border-border p-6 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Feedback e Desenvolvimento</p>
+                <p className="text-sm text-muted-foreground">
+                  Reflexões para melhoria contínua dos prestadores
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Lista de Feedbacks */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              Feedbacks Registrados
-            </h2>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="recebidos" className="gap-2">
+                <Inbox className="w-4 h-4" />
+                Recebidos ({feedbacksRecebidos.length})
+              </TabsTrigger>
+              <TabsTrigger value="enviados" className="gap-2">
+                <Send className="w-4 h-4" />
+                Enviados ({feedbacksEnviados.length})
+              </TabsTrigger>
+            </TabsList>
 
-            {feedbacks.length === 0 ? (
-              <div className="bg-card rounded-xl border border-border p-12 text-center">
-                <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  Nenhum feedback registrado
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Clique em "Novo Feedback" para começar.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {ordenarPorMes(feedbacks).map((feedback) => (
-                  <div
-                    key={feedback.id}
-                    className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handleEditarFeedback(feedback)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <MessageSquare className="w-6 h-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{feedback.mes}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Destinatário: {feedback.destinatario?.nome || 'N/A'}
-                          </p>
-                        </div>
-                      </div>
+            <TabsContent value="recebidos" className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                Feedbacks Recebidos
+              </h2>
+              <FeedbackList 
+                feedbacks={feedbacksRecebidos} 
+                onClickFeedback={(f) => handleEditarFeedback(f, true)}
+                variant="recebido"
+              />
+            </TabsContent>
 
-                      <div className="flex items-center gap-4">
-                          {feedback.liberado_em && (
-                            <Badge variant="secondary" className="gap-1">
-                              <Lock className="w-3 h-3" />
-                              Liberado
-                            </Badge>
-                          )}
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Autor</p>
-                            <p className="text-sm font-medium text-foreground">
-                              {feedback.autor?.nome || 'N/A'}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Atualizado em</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(feedback.atualizado_em).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            <TabsContent value="enviados" className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                Feedbacks Enviados
+              </h2>
+              <FeedbackList 
+                feedbacks={feedbacksEnviados} 
+                onClickFeedback={(f) => handleEditarFeedback(f, false)}
+                variant="enviado"
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
@@ -479,7 +438,10 @@ export default function FeedbackGhasPage() {
           <DialogHeader>
             <DialogTitle>Feedback - {currentFeedback?.mes}</DialogTitle>
             <DialogDescription>
-              Preencha os campos de feedback e desenvolvimento.
+              {isEditing 
+                ? 'Preencha os campos de feedback e desenvolvimento.'
+                : 'Visualize o feedback de desenvolvimento.'
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -510,30 +472,60 @@ export default function FeedbackGhasPage() {
                 <div className="space-y-6 mt-4">
                   <div>
                     <Label className="input-label">O que devo Começar a Fazer</Label>
-                    <Textarea 
-                      placeholder="Descreva novas ações ou comportamentos que você deve começar a adotar..."
-                      className="mt-2 min-h-[100px]"
-                      value={currentFeedback.feedback_comecar_fazer || ''}
-                      onChange={(e) => updateField('feedback_comecar_fazer', e.target.value)}
-                    />
+                    {isEditing ? (
+                      <Textarea 
+                        placeholder="Descreva novas ações ou comportamentos que você deve começar a adotar..."
+                        className="mt-2 min-h-[100px]"
+                        value={currentFeedback.feedback_comecar_fazer || ''}
+                        onChange={(e) => updateField('feedback_comecar_fazer', e.target.value)}
+                      />
+                    ) : (
+                      <div className="mt-2 p-3 bg-muted rounded-md min-h-[80px]">
+                        <p className="text-sm whitespace-pre-wrap">
+                          {currentFeedback.feedback_comecar_fazer || 
+                            <span className="text-muted-foreground italic">Nenhum feedback informado</span>
+                          }
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label className="input-label">O que devo Continuar a Fazer</Label>
-                    <Textarea 
-                      placeholder="Descreva ações ou comportamentos positivos que você deve manter..."
-                      className="mt-2 min-h-[100px]"
-                      value={currentFeedback.feedback_continuar_fazer || ''}
-                      onChange={(e) => updateField('feedback_continuar_fazer', e.target.value)}
-                    />
+                    {isEditing ? (
+                      <Textarea 
+                        placeholder="Descreva ações ou comportamentos positivos que você deve manter..."
+                        className="mt-2 min-h-[100px]"
+                        value={currentFeedback.feedback_continuar_fazer || ''}
+                        onChange={(e) => updateField('feedback_continuar_fazer', e.target.value)}
+                      />
+                    ) : (
+                      <div className="mt-2 p-3 bg-muted rounded-md min-h-[80px]">
+                        <p className="text-sm whitespace-pre-wrap">
+                          {currentFeedback.feedback_continuar_fazer || 
+                            <span className="text-muted-foreground italic">Nenhum feedback informado</span>
+                          }
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label className="input-label">O que devo Parar de Fazer</Label>
-                    <Textarea 
-                      placeholder="Descreva ações ou comportamentos que você deve eliminar..."
-                      className="mt-2 min-h-[100px]"
-                      value={currentFeedback.feedback_parar_fazer || ''}
-                      onChange={(e) => updateField('feedback_parar_fazer', e.target.value)}
-                    />
+                    {isEditing ? (
+                      <Textarea 
+                        placeholder="Descreva ações ou comportamentos que você deve eliminar..."
+                        className="mt-2 min-h-[100px]"
+                        value={currentFeedback.feedback_parar_fazer || ''}
+                        onChange={(e) => updateField('feedback_parar_fazer', e.target.value)}
+                      />
+                    ) : (
+                      <div className="mt-2 p-3 bg-muted rounded-md min-h-[80px]">
+                        <p className="text-sm whitespace-pre-wrap">
+                          {currentFeedback.feedback_parar_fazer || 
+                            <span className="text-muted-foreground italic">Nenhum feedback informado</span>
+                          }
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -575,7 +567,7 @@ export default function FeedbackGhasPage() {
             )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-                {currentFeedback?.liberado_em ? 'Fechar' : 'Cancelar'}
+                {isEditing ? 'Cancelar' : 'Fechar'}
               </Button>
               {isEditing && !currentFeedback?.liberado_em && (
                 <Button 
