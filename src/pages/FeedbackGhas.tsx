@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, MessageSquare, Loader2, Trash2, Save, User, Lock } from 'lucide-react';
+import { Plus, MessageSquare, Loader2, Trash2, Save, User, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -91,6 +91,7 @@ export default function FeedbackGhasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
+  const [isUnreleaseDialogOpen, setIsUnreleaseDialogOpen] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState<FeedbackGhas | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
@@ -246,6 +247,32 @@ export default function FeedbackGhasPage() {
       toast({
         title: 'Erro ao excluir',
         description: error.message || 'Ocorreu um erro ao excluir o feedback.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDesfazerLiberacao = async () => {
+    if (!currentFeedback) return;
+
+    try {
+      await updateFeedback.mutateAsync({
+        id: currentFeedback.id,
+        liberado_em: null,
+      });
+
+      toast({
+        title: 'Liberação desfeita',
+        description: 'O feedback pode ser editado novamente.',
+      });
+      setIsUnreleaseDialogOpen(false);
+      setIsFormOpen(false);
+      setCurrentFeedback(null);
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao desfazer liberação',
+        description: error.message || 'Ocorreu um erro ao desfazer a liberação.',
         variant: 'destructive',
       });
     }
@@ -524,12 +551,25 @@ export default function FeedbackGhasPage() {
               </Button>
             )}
             {currentFeedback?.liberado_em && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Lock className="w-4 h-4" />
-                <span className="text-sm">
-                  Liberado em {new Date(currentFeedback.liberado_em).toLocaleDateString('pt-BR')}
-                  {currentFeedback.autor?.nome && ` por ${currentFeedback.autor.nome}`}
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm">
+                    Liberado em {new Date(currentFeedback.liberado_em).toLocaleDateString('pt-BR')}
+                    {currentFeedback.autor?.nome && ` por ${currentFeedback.autor.nome}`}
+                  </span>
+                </div>
+                {prestador?.id === currentFeedback.autor_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsUnreleaseDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Unlock className="w-4 h-4" />
+                    Desfazer Liberação
+                  </Button>
+                )}
               </div>
             )}
             <div className="flex gap-2">
@@ -604,6 +644,27 @@ export default function FeedbackGhasPage() {
               onClick={() => handleSalvarFeedback(true)}
             >
               Liberar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Desfazer Liberação */}
+      <AlertDialog open={isUnreleaseDialogOpen} onOpenChange={setIsUnreleaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer Liberação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja desfazer a liberação do feedback de <strong>{currentFeedback?.mes}</strong> para{' '}
+              <strong>{currentFeedback?.destinatario?.nome}</strong>?
+              <br /><br />
+              O feedback voltará a ser editável.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDesfazerLiberacao}>
+              Desfazer Liberação
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

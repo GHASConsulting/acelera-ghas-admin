@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Globe, Info, Loader2, Trash2, Lock, Save } from 'lucide-react';
+import { Plus, Globe, Info, Loader2, Trash2, Lock, Unlock, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Tooltip,
@@ -81,6 +81,7 @@ export default function RegistroGlobalPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
+  const [isUnreleaseDialogOpen, setIsUnreleaseDialogOpen] = useState(false);
   const [currentRegistro, setCurrentRegistro] = useState<RegistroGlobal | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
@@ -216,6 +217,32 @@ export default function RegistroGlobalPage() {
       toast({
         title: 'Erro ao excluir',
         description: error.message || 'Ocorreu um erro ao excluir o registro.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDesfazerLiberacao = async () => {
+    if (!currentRegistro) return;
+
+    try {
+      await updateRegistro.mutateAsync({
+        id: currentRegistro.id,
+        liberado_em: null,
+      });
+
+      toast({
+        title: 'Liberação desfeita',
+        description: 'O registro global pode ser editado novamente.',
+      });
+      setIsUnreleaseDialogOpen(false);
+      setIsFormOpen(false);
+      setCurrentRegistro(null);
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao desfazer liberação',
+        description: error.message || 'Ocorreu um erro ao desfazer a liberação.',
         variant: 'destructive',
       });
     }
@@ -523,12 +550,25 @@ export default function RegistroGlobalPage() {
               </Button>
             )}
             {currentRegistro?.liberado_em && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Lock className="w-4 h-4" />
-                <span className="text-sm">
-                  Liberado em {new Date(currentRegistro.liberado_em).toLocaleDateString('pt-BR')}
-                  {currentRegistro.registrado_por?.nome && ` por ${currentRegistro.registrado_por.nome}`}
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm">
+                    Liberado em {new Date(currentRegistro.liberado_em).toLocaleDateString('pt-BR')}
+                    {currentRegistro.registrado_por?.nome && ` por ${currentRegistro.registrado_por.nome}`}
+                  </span>
+                </div>
+                {prestador?.id === currentRegistro.registrado_por_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsUnreleaseDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Unlock className="w-4 h-4" />
+                    Desfazer Liberação
+                  </Button>
+                )}
               </div>
             )}
             <div className="flex gap-2">
@@ -602,6 +642,26 @@ export default function RegistroGlobalPage() {
               onClick={() => handleSalvarRegistro(true)}
             >
               Liberar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Desfazer Liberação */}
+      <AlertDialog open={isUnreleaseDialogOpen} onOpenChange={setIsUnreleaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer Liberação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja desfazer a liberação do registro global de <strong>{currentRegistro?.mes}</strong>?
+              <br /><br />
+              O registro voltará a ser editável.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDesfazerLiberacao}>
+              Desfazer Liberação
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
