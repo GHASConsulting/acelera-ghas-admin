@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Calendar, Loader2, Save, Trash2 } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, CheckCircle2, Info, Lock, Unlock, Calendar, Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -190,6 +190,7 @@ export default function Registro() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
+  const [isUnreleaseDialogOpen, setIsUnreleaseDialogOpen] = useState(false);
   const [currentAvaliacao, setCurrentAvaliacao] = useState<Partial<AvaliacaoMensal> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newMes, setNewMes] = useState<string>('');
@@ -349,6 +350,32 @@ export default function Registro() {
       toast({
         title: 'Erro ao excluir',
         description: error.message || 'Ocorreu um erro ao excluir a avaliação.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDesfazerLiberacao = async () => {
+    if (!currentAvaliacao?.id) return;
+
+    try {
+      await updateAvaliacao.mutateAsync({
+        id: currentAvaliacao.id,
+        liberado_em: null,
+      });
+
+      toast({
+        title: 'Liberação desfeita',
+        description: 'A avaliação pode ser editada novamente.',
+      });
+      setIsUnreleaseDialogOpen(false);
+      setIsFormOpen(false);
+      setCurrentAvaliacao(null);
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao desfazer liberação',
+        description: error.message || 'Ocorreu um erro ao desfazer a liberação.',
         variant: 'destructive',
       });
     }
@@ -1044,12 +1071,25 @@ export default function Registro() {
               </Button>
             )}
             {currentAvaliacao?.liberado_em && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Lock className="w-4 h-4" />
-                <span className="text-sm">
-                  Liberado em {new Date(currentAvaliacao.liberado_em).toLocaleDateString('pt-BR')}
-                  {currentAvaliacao.avaliador?.nome && ` por ${currentAvaliacao.avaliador.nome}`}
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm">
+                    Liberado em {new Date(currentAvaliacao.liberado_em).toLocaleDateString('pt-BR')}
+                    {currentAvaliacao.avaliador?.nome && ` por ${currentAvaliacao.avaliador.nome}`}
+                  </span>
+                </div>
+                {prestadorLogado?.id === currentAvaliacao.avaliador_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsUnreleaseDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Unlock className="w-4 h-4" />
+                    Desfazer Liberação
+                  </Button>
+                )}
               </div>
             )}
             <div className="flex gap-2">
@@ -1123,6 +1163,26 @@ export default function Registro() {
               onClick={() => handleSalvarAvaliacao(true)}
             >
               Liberar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog Desfazer Liberação */}
+      <AlertDialog open={isUnreleaseDialogOpen} onOpenChange={setIsUnreleaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer Liberação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja desfazer a liberação da avaliação de <strong>{currentAvaliacao?.mes}</strong>?
+              <br /><br />
+              A avaliação voltará a ser editável.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDesfazerLiberacao}>
+              Desfazer Liberação
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
