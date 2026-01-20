@@ -169,6 +169,7 @@ export default function FeedbackGhasPage() {
         autor: { id: prestador.id, nome: prestador.nome },
         destinatario: { id: newDestinatario, nome: destinatarioNome },
       });
+      setIsEditing(true);
       setIsFormOpen(true);
     } catch (error: any) {
       toast({
