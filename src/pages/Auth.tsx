@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, Zap, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound } from 'lucide-react';
+import ghasLogo from '@/assets/ghas-logo.jpg';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -214,8 +215,8 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/20 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-            <Zap className="w-7 h-7 text-primary-foreground" />
+          <div className="mx-auto">
+            <img src={ghasLogo} alt="GHAS Logo" className="w-24 h-auto" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">Acelera GHAS</CardTitle>
