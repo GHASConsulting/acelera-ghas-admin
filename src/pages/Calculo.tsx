@@ -97,7 +97,10 @@ export default function Calculo() {
   const { data: avaliacoes = [], isLoading: loadingAvaliacoes } = useAvaliacoes(selectedPrestador || undefined);
   const { data: registrosGlobais = [] } = useRegistrosGlobais();
 
-  // Filtrar prestadores com base no papel do usuário
+  // Filtrar prestadores com base no papel do usuário:
+  // - Admin: vê todos os prestadores ativos
+  // - Responsável GHAS: vê prestadores que têm ele como avaliador
+  // - Prestador comum: vê apenas ele mesmo
   const prestadoresFiltrados = useMemo(() => {
     const ativos = prestadores.filter((p) => p.situacao === 'ativo');
     
@@ -105,8 +108,8 @@ export default function Calculo() {
       return ativos;
     }
     
-    if (isAvaliador && prestadorLogado) {
-      // Avaliador vê apenas seus avaliados
+    if (prestadorLogado?.responsavel_ghas) {
+      // Responsável GHAS vê apenas prestadores que têm ele como avaliador
       return ativos.filter((p) => p.avaliador_id === prestadorLogado.id);
     }
     
@@ -116,7 +119,7 @@ export default function Calculo() {
     }
     
     return [];
-  }, [prestadores, isAdmin, isAvaliador, prestadorLogado]);
+  }, [prestadores, isAdmin, prestadorLogado]);
 
   const prestadorSelecionado = prestadoresFiltrados.find((p) => p.id === selectedPrestador);
 

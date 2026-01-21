@@ -200,10 +200,23 @@ export default function Registro() {
   const updateAvaliacao = useUpdateAvaliacao();
   const deleteAvaliacao = useDeleteAvaliacao();
 
-  // Filtrar prestadores ativos sob responsabilidade do usuário logado (ou todos se admin)
-  const prestadoresDisponiveis = prestadores.filter(
-    (p) => p.situacao === 'ativo' && (isAdmin || p.avaliador_id === prestadorLogado?.id)
-  );
+  // Filtrar prestadores ativos com base no papel do usuário:
+  // - Admin: vê todos os prestadores ativos
+  // - Responsável GHAS: vê prestadores que têm ele como avaliador
+  // - Prestador comum: vê apenas ele mesmo
+  const prestadoresDisponiveis = prestadores.filter((p) => {
+    if (p.situacao !== 'ativo') return false;
+    
+    if (isAdmin) return true;
+    
+    if (prestadorLogado?.responsavel_ghas) {
+      // Responsável GHAS vê apenas prestadores que têm ele como avaliador
+      return p.avaliador_id === prestadorLogado.id;
+    }
+    
+    // Prestador comum vê apenas ele mesmo
+    return p.id === prestadorLogado?.id;
+  });
 
   const prestadorSelecionado = prestadoresDisponiveis.find((p) => p.id === selectedPrestador);
 
