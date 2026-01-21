@@ -52,85 +52,65 @@ Deno.serve(async (req) => {
 
     if (!roles || roles.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Acesso negado. Apenas admins podem criar prestadores." }),
+        JSON.stringify({ error: "Acesso negado. Apenas admins podem alterar roles." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Parse request body
-    const { email, password, nome, salario_fixo, data_inicio_prestacao, avaliador_id, responsavel_ghas } = await req.json();
+    const { target_user_id, responsavel_ghas } = await req.json();
 
     // Validate input
-    if (!email || !password || !nome) {
+    if (!target_user_id) {
       return new Response(
-        JSON.stringify({ error: "Email, senha e nome são obrigatórios" }),
+        JSON.stringify({ error: "target_user_id é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (password.length < 6) {
-      return new Response(
-        JSON.stringify({ error: "Senha deve ter no mínimo 6 caracteres" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (responsavel_ghas) {
+      // Add admin role if not exists
+      const { data: existingRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", target_user_id)
+        .eq("role", "admin")
+        .maybeSingle();
 
-    // Create user in auth.users using admin API
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Skip email confirmation
-      user_metadata: {
-        nome
-      }
-    });
-
-    if (createError) {
-      if (createError.message.includes("already been registered")) {
-        return new Response(
-          JSON.stringify({ error: "Este email já está cadastrado" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      return new Response(
-        JSON.stringify({ error: createError.message }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Update the prestador with additional info (trigger already created basic record)
-    if (newUser.user) {
-      const { error: updateError } = await supabaseAdmin
-        .from("prestadores")
-        .update({
-          salario_fixo: salario_fixo || 0,
-          data_inicio_prestacao: data_inicio_prestacao || null,
-          avaliador_id: avaliador_id || null,
-          responsavel_ghas: responsavel_ghas || false
-        })
-        .eq("user_id", newUser.user.id);
-
-      if (updateError) {
-        console.error("Error updating prestador:", updateError);
-      }
-
-      // Sync admin role based on responsavel_ghas
-      if (responsavel_ghas) {
-        const { error: roleError } = await supabaseAdmin
+      if (!existingRole) {
+        const { error: insertError } = await supabaseAdmin
           .from("user_roles")
-          .insert({ user_id: newUser.user.id, role: "admin" });
+          .insert({ user_id: target_user_id, role: "admin" });
 
-        if (roleError && !roleError.message.includes("duplicate")) {
-          console.error("Error adding admin role:", roleError);
+        if (insertError) {
+          console.error("Error inserting admin role:", insertError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao adicionar role admin" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
+      }
+    } else {
+      // Remove admin role if exists
+      const { error: deleteError } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", target_user_id)
+        .eq("role", "admin");
+
+      if (deleteError) {
+        console.error("Error deleting admin role:", deleteError);
+        return new Response(
+          JSON.stringify({ error: "Erro ao remover role admin" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Prestador ${nome} criado com sucesso!`,
-        user_id: newUser.user?.id 
+        message: responsavel_ghas ? "Role admin adicionada" : "Role admin removida"
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
