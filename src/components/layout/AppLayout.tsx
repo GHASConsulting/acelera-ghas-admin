@@ -25,8 +25,7 @@ const navigation = [{
 }, {
   name: 'Alinhamentos de Serviços',
   href: '/feedback-ghas',
-  icon: MessageSquare,
-  requiresGhas: true
+  icon: MessageSquare
 }, {
   name: 'Cálculo',
   href: '/calculo',
