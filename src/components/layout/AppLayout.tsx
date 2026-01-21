@@ -64,8 +64,10 @@ export function AppLayout({
 
         <nav className="p-4 space-y-1">
           {navigation.filter(item => {
-          if (item.requiresAdmin && !isAdmin) return false;
-          if (item.requiresGhas && !isResponsavelGhas) return false;
+          // Responsável GHAS vê todos os menus
+          if (isResponsavelGhas) return true;
+          // Outros usuários só veem menus sem restrições especiais
+          if (item.requiresAdmin || item.requiresGhas) return false;
           return true;
         }).map(item => {
           const isActive = location.pathname === item.href;
