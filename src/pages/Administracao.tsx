@@ -133,6 +133,21 @@ export default function Administracao() {
           responsavel_ghas: formData.responsavel_ghas,
           data_inicio_prestacao: formData.data_inicio_prestacao || null,
         });
+
+        // Sincronizar role admin baseado no responsavel_ghas
+        if (formData.responsavel_ghas !== editingPrestador.responsavel_ghas) {
+          const { error: syncError } = await supabase.functions.invoke('sync-user-role', {
+            body: {
+              target_user_id: editingPrestador.user_id,
+              responsavel_ghas: formData.responsavel_ghas,
+            },
+          });
+
+          if (syncError) {
+            console.error('Erro ao sincronizar role:', syncError);
+          }
+        }
+
         toast({
           title: 'Prestador atualizado',
           description: `${formData.nome} foi atualizado com sucesso.`,
