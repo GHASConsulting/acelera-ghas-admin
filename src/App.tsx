@@ -71,9 +71,9 @@ const App = () => (
             <Route
               path="/feedback-ghas"
               element={
-                <ProtectedGhasRoute>
+                <ProtectedRoute>
                   <FeedbackGhas />
-                </ProtectedGhasRoute>
+                </ProtectedRoute>
               }
             />
             <Route
