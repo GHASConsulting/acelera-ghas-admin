@@ -388,9 +388,9 @@ export default function FeedbackGhasPage() {
                   <SelectValue placeholder="Selecione o destinatário..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {prestadoresAtivos.map((p) => (
+                  {prestadores.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
+                      {p.nome} {p.situacao === 'inativo' ? '(Inativo)' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
