@@ -87,8 +87,7 @@ export default function FeedbackGhasPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Verificar se o usuário tem permissão (apenas para criar/editar feedbacks enviados)
-  const canCreateFeedback = isResponsavelGhas || isAdmin;
+  // Todos os usuários podem criar feedbacks
 
   // Filtrar feedbacks recebidos (onde o usuário logado é o destinatário)
   const feedbacksRecebidos = feedbacks.filter(
@@ -293,15 +292,13 @@ export default function FeedbackGhasPage() {
                 Visualize e gerencie os feedbacks de desenvolvimento
               </p>
             </div>
-            {canCreateFeedback && (
-              <Button
-                onClick={() => setIsNewDialogOpen(true)}
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Novo Feedback
-              </Button>
-            )}
+            <Button
+              onClick={() => setIsNewDialogOpen(true)}
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Feedback
+            </Button>
           </div>
         </div>
 
